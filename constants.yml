@@ -1,0 +1,8 @@
+google_api:
+    drive:
+        name:    'drive'
+        version: 'v2'
+    users_endpoint: 'https://apps-apis.google.com/a/feeds/{domain_name}/user/2.0'
+    scopes:
+        - 'https://www.googleapis.com/auth/drive.readonly'
+        - 'https://apps-apis.google.com/a/feeds/user/'

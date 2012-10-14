@@ -1,4 +1,4 @@
 Brive
 =====
 
-Google Drive Backup app
+Google Drive Backup application
