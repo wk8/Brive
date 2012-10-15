@@ -7,14 +7,14 @@ class BriveException(Exception):
     # string as a short description), or another exception
     def __init__(self, *args):
         if args and type(args[0]) is str:
-            super(BriveException, self)._init_()
+            super(BriveException, self).__init__()
             self._message = args[0]
             if len(args) != 1:
                 self._short_description = args[1]
             else:
                 self._short_description = None
         elif args and isinstance(args[0], Exception):
-            self._init_(str(args[0]))
+            self.__init__(str(args[0]))
         else:
             raise Exception('Incorrect arguments in BriveException.__init__()')
 

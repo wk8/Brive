@@ -2,7 +2,9 @@
 
 import yaml
 
+
 from briveexception import *
+from backend import *
 from notifier import *
 
 
@@ -44,6 +46,13 @@ class Configuration:
                 'Invalid argument for Configuration.get: {}'.format(repr(name))
             )
         return [self.get(name, **kwargs) for name in args]
+
+    # returns the right backend depending on the configuration
+    def get_backend(self):
+        compression = self.get('backend_compression', is_bool=True)
+        class_name = 'TarBackend' if compression else 'SimpleBackend'
+        class_object = eval(class_name)
+        return class_object(self)
 
     def _add_dict(self, dictionary, prefix=''):
         if prefix:

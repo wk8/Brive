@@ -3,6 +3,7 @@
 import md5
 import re
 import urllib2
+from StringIO import StringIO
 
 from briveexception import *
 from client import *
@@ -178,7 +179,7 @@ class Document:
         success, message = True, None
         # content length
         content_length = int(headers.get('content-length', 0))
-        if content_length and content_length != len(content):
+        if content_length and content_length != StringIO(content).len:
             success = False
             message = 'expected length {} VS actual length {}'.format(
                 content_length, len(content)

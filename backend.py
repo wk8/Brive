@@ -3,7 +3,8 @@
 import os
 import errno
 import time
-from tarfile import *
+import tarfile
+from StringIO import StringIO
 
 from briveexception import *
 from notifier import *
@@ -12,17 +13,18 @@ from notifier import *
 # a helper class for actual backends
 class BaseBackend(object):
 
-    def __init__(self, config):
-        self._root_dir = config.get('backend_root_dir', not_null=True)
-        # add a trailing slash to root_dir if there isn't any
-        self._root_dir += '' if self._root_dir[-1] == os.sep else os.sep
+    def __init__(self, config = None):
+        if config:
+            self._root_dir = config.get('backend_root_dir', not_null=True)
+            # add a trailing slash to root_dir if there isn't any
+            self._root_dir += '' if self._root_dir[-1] == os.sep else os.sep
 
     # can be overriden for more elaborate backends
     def need_to_fetch_contents(self, user, document):
         return True
 
     # equivalent to *nix's _mkdir -p
-    def _mkdir(self, path):
+    def _mkdir(self, path = ''):
         try:
             os.makedirs(self._root_dir + path)
         except OSError as ex:
@@ -62,11 +64,11 @@ class SimpleBackend(BaseBackend):
         self._mkdir(user.login)
         prefix = self._root_dir + user.login + os.sep
         for file_name, content in document.contents.items():
-            file_path = prefix + file_name
+            path = prefix + file_name
             debug ('Writing {}\'s {} to {}'.format(
-                user.login, document.title, file_path
+                user.login, document.title, path
             ))
-            f = open(file_path, 'w')
+            f = open(path, 'w')
             f.write(content)
             f.close()
 
@@ -76,18 +78,29 @@ class TarBackend(BaseBackend):
 
     def __init__(self, config):
         super(TarBackend, self).__init__(config)
+        self._mkdir()
         format = config.get('backend_compression_format', not_null=True)
-        if format not in ('bz', 'gz2'):
-            raise BriveException('The compression format must be either gz or bz2')
-        dir_name = BaseBackend._get_session_dir_name()
-        tar_file_name = dir_name + '.tar.' + format
-        self._tarfile = tarfile.open(tar_file_name, 'w:' + format)
+        if format not in ('gz', 'bz2'):
+            raise BriveException(
+                'The compression format must be either gz or bz2, ' +
+                '{} given'.format(format)
+            )
+        self._dir_name = BaseBackend._get_session_dir_name()
+        tar_file_name = self._dir_name + '.tar.' + format
+        self._tarfile = tarfile.open(self._root_dir + tar_file_name, 'w:' + format)
+        debug('TarBackend loaded')
 
     def save(self, user, document):
-        pass
+        for file_name, content in document.contents.items():
+            path = self._dir_name + os.sep + user.login + os.sep + file_name
+            debug ('Writing {}\'s {} to {}'.format(
+                user.login, document.title, path
+            ))
+            file_object = StringIO(content)
+            tarnfo = tarfile.TarInfo(path)
+            tarnfo.size = file_object.len
+            self._tarfile.addfile(tarnfo, file_object)
 
     def finalize(self):
-        self.__tarfile.close()
+        self._tarfile.close()
 
-    def _get_tar_info(self):
-        pass

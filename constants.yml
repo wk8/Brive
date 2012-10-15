@@ -9,3 +9,8 @@ google_api:
 
 backend:
     compression_format: 'gz'
+    compression: 'False'
+
+factories:
+    simple_backend: 'SimpleBackend'
+    tar_backend: 'TarBackend'
