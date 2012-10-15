@@ -7,6 +7,7 @@ import yaml
 import md5
 import re
 import urllib2
+import time
 
 from briveexception import *
 from configuration import *
@@ -21,6 +22,7 @@ def main():
     configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
     client = Client(configuration)
     backend = DummyBackend()
+    # backend = SimpleBackend(configuration)
     for user in client.users:
         user.save_documents(backend)
 

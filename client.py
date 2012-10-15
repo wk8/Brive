@@ -15,7 +15,7 @@ from briveexception import *
 from configuration import *
 from backend import *
 from model import *
-
+from notifier import *
 
 class Credentials:
 
@@ -41,6 +41,7 @@ class Credentials:
         try:
             signed_assertion = self.get_signed_assertion()
             signed_assertion.refresh(http)
+            debug('App\'s credentials valid')
             return True
         except CryptoError as crypto_error:
             if throw_excptns:
@@ -74,9 +75,11 @@ class Client:
         self.__users_api_endpoint = \
             users_api_endpoint.format(domain_name=self.__domain)
         self.__curent_user = None
+        debug('Client loaded')
 
     # authorizes the given user
     def authorize(self, user):
+        debug('Authorizing client for {}'.format(user.login))
         self.__reset()
         signed_assertion = self.__creds.get_signed_assertion(
             prn=self.__get_email_address(user)
@@ -100,7 +103,9 @@ class Client:
             status = int(headers['status'])
             if status == 200:
                 data = feedparser.parse(xml)
-                return [User(user['title'], self) for user in data['entries']]
+                result = [User(user['title'], self) for user in data['entries']]
+                verbose('Found users: {}'.format(result))
+                return result
             elif status == 403:
                 raise BriveException('User {} is not an admin'.
                                      format(self.__admin.login))

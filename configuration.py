@@ -3,6 +3,7 @@
 import yaml
 
 from briveexception import *
+from notifier import *
 
 
 class Configuration:
@@ -11,6 +12,7 @@ class Configuration:
         self.__data = dict()
         self.__load_from_yml(settings_file)
         self.__load_from_yml(constants_file)
+        debug('Configuration loaded')
 
     def __str__(self):
         return str(self.__data)

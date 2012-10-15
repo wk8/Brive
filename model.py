@@ -29,17 +29,23 @@ class User:
         return self.__documents
 
     def save_documents(self, backend):
-        # TODO: log 'date: save docs for user XX'
+        verbose('Processing docs for {}'.format(self.login))
         # list of processed ids
         done = list()
         # keep track of errors that happen twice in a row
         second_error = False
+        self.__fetch_docs_list()
         while self.__documents:
             document = self.__documents.pop()
-            # TODO: log 'date: save doc id XX for user XX'
+            verbose('Processing {}\'s doc "{}" (id: {})'.format(
+                self.login, document.title, document.id
+            ))
             try:
-                if not backend.need_to_fetch_contents(self, document)
+                if not backend.need_to_fetch_contents(self, document):
                     # mark as done, and get to the next one
+                    verbose(
+                        'Not necessary to fetch doc id '.format(document.id)
+                    )
                     done.append(document.id)
                     continue
                 contents = document.fetch_contents(self.__client)
@@ -63,6 +69,9 @@ class User:
                     '(doc id: {}): {} '.format(document.id, str(ex))
                 )
             try:
+                verbose('Saving {}\'s doc "{}" (id: {})'.format(
+                    self.login, document.title, document.id
+                ))
                 backend.save(self, document)
             except Exception as ex:
                 raise BriveException(
@@ -77,6 +86,7 @@ class User:
 
     # fetches the documents' list, except those whose ids are in 'done'
     def __fetch_docs_list(self, done=list()):
+        debug('Fetching doc list for {}'.format(self.login))
         try:
             client = self.__client
             client.authorize(self)
@@ -112,10 +122,19 @@ class Document:
     def id(self):
         return self.get_meta('id')
 
+    @property
+    def contents(self):
+        return self.__contents
+
+    @property
+    def title(self):
+        return self.get_meta('title')
+
     # sets contents to be a dict mapping file names to contents
     # force_refresh = True forces to re-fetch the contents even if we have
     # already done so
     def fetch_contents(self, client, **kwargs):
+        debug('Fetching contents for doc id {}'.format(self.id))
         if self.__contents is None \
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
@@ -155,6 +174,7 @@ class Document:
             return None
 
     def __check_download_integrity(self, headers, content):
+        debug('Checking download integrity for doc id {}'.format(self.id))
         success, message = True, None
         # content length
         content_length = int(headers.get('content-length', 0))
