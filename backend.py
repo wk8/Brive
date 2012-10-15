@@ -3,6 +3,7 @@
 import os
 import errno
 import time
+from tarfile import *
 
 from briveexception import *
 from notifier import *
@@ -12,9 +13,9 @@ from notifier import *
 class BaseBackend(object):
 
     def __init__(self, config):
-        self.root_dir = config.get('backend_root_dir', not_null=True)
+        self._root_dir = config.get('backend_root_dir', not_null=True)
         # add a trailing slash to root_dir if there isn't any
-        self.root_dir += '' if self.root_dir[-1] == os.sep else os.sep
+        self._root_dir += '' if self._root_dir[-1] == os.sep else os.sep
 
     # can be overriden for more elaborate backends
     def need_to_fetch_contents(self, user, document):
@@ -23,13 +24,17 @@ class BaseBackend(object):
     # equivalent to *nix's _mkdir -p
     def _mkdir(self, path):
         try:
-            os.makedirs(self.root_dir + path)
+            os.makedirs(self._root_dir + path)
         except OSError as ex:
             if ex.errno == errno.EEXIST:
                 pass
             else:
                 raise
 
+    def finalize(self):
+        pass
+
+    # UTC ISO-8601 time
     @staticmethod
     def _get_session_dir_name():
         return time.strftime('%Y-%m-%dT%H%M%SZ', time.gmtime())
@@ -47,15 +52,15 @@ class SimpleBackend(BaseBackend):
 
     def __init__(self, config):
         super(SimpleBackend, self).__init__(config)
-        # create the root directory for this session: UTC ISO-8601 time
-        new_root = BaseBackend._get_session_dir_name()
-        self._mkdir(new_root)
-        self.root_dir += new_root + os.sep
+        # create the root directory for this session
+        dir_name = BaseBackend._get_session_dir_name()
+        self._mkdir(dir_name)
+        self._root_dir += dir_name + os.sep
         debug('SimpleBackend loaded')
 
     def save(self, user, document):
         self._mkdir(user.login)
-        prefix = self.root_dir + user.login + os.sep
+        prefix = self._root_dir + user.login + os.sep
         for file_name, content in document.contents.items():
             file_path = prefix + file_name
             debug ('Writing {}\'s {} to {}'.format(
@@ -66,4 +71,23 @@ class SimpleBackend(BaseBackend):
             f.close()
 
 
+# also downloads everything, but compresses it
+class TarBackend(BaseBackend):
 
+    def __init__(self, config):
+        super(TarBackend, self).__init__(config)
+        format = config.get('backend_compression_format', not_null=True)
+        if format not in ('bz', 'gz2'):
+            raise BriveException('The compression format must be either gz or bz2')
+        dir_name = BaseBackend._get_session_dir_name()
+        tar_file_name = dir_name + '.tar.' + format
+        self._tarfile = tarfile.open(tar_file_name, 'w:' + format)
+
+    def save(self, user, document):
+        pass
+
+    def finalize(self):
+        self.__tarfile.close()
+
+    def _get_tar_info(self):
+        pass

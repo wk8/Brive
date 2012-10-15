@@ -24,6 +24,7 @@ def main():
     backend = SimpleBackend(configuration)
     for user in client.users:
         user.save_documents(backend)
+    backend.finalize()
 
 if __name__ == '__main__':
     main()

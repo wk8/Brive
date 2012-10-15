@@ -6,3 +6,6 @@ google_api:
     scopes:
         - 'https://www.googleapis.com/auth/drive.readonly'
         - 'https://apps-apis.google.com/a/feeds/user/'
+
+backend:
+    compression_format: 'gz'

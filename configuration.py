@@ -10,8 +10,8 @@ class Configuration:
 
     def __init__(self, settings_file, constants_file):
         self._data = dict()
-        self._load_from_yml(settings_file)
         self._load_from_yml(constants_file)
+        self._load_from_yml(settings_file)
         debug('Configuration loaded')
 
     def __str__(self):

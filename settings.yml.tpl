@@ -12,3 +12,4 @@ google:
 
 backend:
     root_dir: 'save/' # path to the folder you want to save your files in
+    compression_format: 'gz' # optional: either gz or bz2, defaults to gz
