@@ -47,6 +47,7 @@ def main():
     except Exception as e:
         backend.clean_up()
         sys.stderr.write(str(e))
+        exit(1)
 
 
 if __name__ == '__main__':
