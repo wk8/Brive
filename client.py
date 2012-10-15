@@ -15,7 +15,7 @@ from briveexception import *
 from configuration import *
 from backend import *
 from model import *
-from notifier import *
+from brive import *
 
 class Credentials:
 

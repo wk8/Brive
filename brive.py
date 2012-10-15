@@ -1,31 +1,36 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# TODO: nettoyer les imports...
 import os
-import yaml
-import md5
-import re
-import urllib2
 import time
+import argparse
 
-class Options:
-    pass
+# set some constants
+SETTINGS_FILE = 'settings.yml'
+CONSTANTS_FILE = 'constants.yml'
 
-Options.BRIVE_DEBUG = True
-Options.BRIVE_VERBOSE = True
+# argument processing
+parser = argparse.ArgumentParser(description='Backup all your Google Apps domain\'s users\'s Drive docs.')
+parser.add_argument('-v', dest='VERBOSE', action='store_const', const=True, default=False, help='Verbose mode')
+parser.add_argument('-d', dest='DEBUG', action='store_const', const=True, default=False, help='Debug mode')
+args = parser.parse_args()
 
-from briveexception import *
+# define some logging functions
+def pprint(*args):
+    timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
+    for arg in args:
+        print '[ {} ] '.format(timestamp) + arg
+
+verbose = pprint if args.VERBOSE or args.DEBUG else lambda *args: None
+debug = pprint if args.DEBUG else lambda *args: None
+
+# local imports
 from configuration import *
 from client import *
 from model import *
 from backend import *
 
-SETTINGS_FILE = 'settings.yml'
-CONSTANTS_FILE = 'constants.yml'
-
 def main():
-
     configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
     client = Client(configuration)
     backend = configuration.get_backend()

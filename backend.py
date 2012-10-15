@@ -7,7 +7,7 @@ import tarfile
 from StringIO import StringIO
 
 from briveexception import *
-from notifier import *
+from brive import *
 
 
 # a helper class for actual backends

@@ -5,7 +5,7 @@ import yaml
 
 from briveexception import *
 from backend import *
-from notifier import *
+from brive import *
 
 
 class Configuration:
