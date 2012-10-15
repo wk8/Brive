@@ -16,4 +16,14 @@ setup(
     keywords = "google drive backup domain",
     url = "https://github.com/x8wk/Brive",
 
+    install_requires = [
+        "PyYAML",
+        "feedparser",
+        "google-api-python-client",
+        "pyOpenSSL",
+    ],
+
+    dependency_links = [
+        "http://pyyaml.org/download/pyyaml/PyYAML-3.10.tar.gz"
+    ]
 )
