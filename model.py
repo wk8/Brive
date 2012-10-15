@@ -95,7 +95,7 @@ class User:
             drive_service = client.build_service('drive', 'v2')
             docs_list = drive_service.files().list().execute()
             self._documents = [Document(meta) for meta in docs_list['items']
-                                if meta['id'] not in done]
+                               if meta['id'] not in done]
         except Exception as ex:
             raise BriveException(
                 'Unexpected error when retrieving documents\' list for user ' +

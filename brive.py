@@ -10,10 +10,15 @@ SETTINGS_FILE = 'settings.yml'
 CONSTANTS_FILE = 'constants.yml'
 
 # argument processing
-parser = argparse.ArgumentParser(description='Backup all your Google Apps domain\'s users\'s Drive docs.')
-parser.add_argument('-v', dest='VERBOSE', action='store_const', const=True, default=False, help='Verbose mode')
-parser.add_argument('-d', dest='DEBUG', action='store_const', const=True, default=False, help='Debug mode')
+parser = argparse.ArgumentParser(
+    description='Backup all your Google Apps domain\'s users\'s Drive docs.'
+)
+parser.add_argument('-v', dest='VERBOSE', action='store_const',
+                    const=True, default=False, help='Verbose mode')
+parser.add_argument('-d', dest='DEBUG', action='store_const',
+                    const=True, default=False, help='Debug mode')
 args = parser.parse_args()
+
 
 # define some logging functions
 def pprint(*args):
@@ -29,6 +34,7 @@ from configuration import *
 from client import *
 from model import *
 from backend import *
+
 
 def main():
     configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)

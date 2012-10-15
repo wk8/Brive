@@ -17,6 +17,7 @@ from backend import *
 from model import *
 from brive import *
 
+
 class Credentials:
 
     def __init__(self, config, http):
@@ -103,7 +104,8 @@ class Client:
             status = int(headers['status'])
             if status == 200:
                 data = feedparser.parse(xml)
-                result = [User(user['title'], self) for user in data['entries']]
+                result = [User(user['title'], self)
+                          for user in data['entries']]
                 verbose('Found users: {}'.format(result))
                 return result
             elif status == 403:
