@@ -13,4 +13,3 @@ google:
 backend:
     root_dir: 'save/' # path to the folder you want to save your files in
     compress: 'True' # optional: controls whether the files are compressed or not
-    path_separator: '/' # optional: the path separator on your system (defaults to *nix's '/')
