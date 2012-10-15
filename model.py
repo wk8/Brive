@@ -11,22 +11,22 @@ from client import *
 class User:
 
     def __init__(self, login, client):
-        self.__login = login
-        self.__client = client
-        self.__documents = None
+        self._login = login
+        self._client = client
+        self._documents = None
 
     def __repr__(self):
-        return self.__login
+        return self._login
 
     @property
     def login(self):
-        return self.__login
+        return self._login
 
     @property
     def documents(self):
-        if self.__documents is None:
-            self.__fetch_docs_list()
-        return self.__documents
+        if self._documents is None:
+            self._fetch_docs_list()
+        return self._documents
 
     def save_documents(self, backend):
         verbose('Processing docs for {}'.format(self.login))
@@ -34,9 +34,9 @@ class User:
         done = list()
         # keep track of errors that happen twice in a row
         second_error = False
-        self.__fetch_docs_list()
-        while self.__documents:
-            document = self.__documents.pop()
+        self._fetch_docs_list()
+        while self._documents:
+            document = self._documents.pop()
             verbose('Processing {}\'s doc "{}" (id: {})'.format(
                 self.login, document.title, document.id
             ))
@@ -48,7 +48,7 @@ class User:
                     )
                     done.append(document.id)
                     continue
-                contents = document.fetch_contents(self.__client)
+                contents = document.fetch_contents(self._client)
                 second_error = False
             except ExpiredTokenException:
                 if second_error:
@@ -60,7 +60,7 @@ class User:
                     )
                 else:
                     second_error = True
-                    self.__fetch_docs_list(done)
+                    self._fetch_docs_list(done)
                     continue
             except Exception as ex:
                 raise BriveException(
@@ -85,14 +85,14 @@ class User:
             done.append(document.id)
 
     # fetches the documents' list, except those whose ids are in 'done'
-    def __fetch_docs_list(self, done=list()):
+    def _fetch_docs_list(self, done=list()):
         debug('Fetching doc list for {}'.format(self.login))
         try:
-            client = self.__client
+            client = self._client
             client.authorize(self)
             drive_service = client.build_service('drive', 'v2')
             docs_list = drive_service.files().list().execute()
-            self.__documents = [Document(meta) for meta in docs_list['items']
+            self._documents = [Document(meta) for meta in docs_list['items']
                                 if meta['id'] not in done]
         except Exception as ex:
             raise BriveException(
@@ -103,19 +103,19 @@ class User:
 
 class Document:
 
-    __name_from_header_regex = re.compile('^attachment;\s*filename="([^"]+)"')
-    __split_extension_regex = re.compile('(^.*)\.([^.]+)$')
+    _name_from_header_regex = re.compile('^attachment;\s*filename="([^"]+)"')
+    _split_extension_regex = re.compile('(^.*)\.([^.]+)$')
 
     def __init__(self, meta):
-        self.__meta = meta
-        self.__contents = None
+        self._meta = meta
+        self._contents = None
 
     def __repr__(self):
-        result = 'Meta: {}'.format(self.__meta)
-        if self.__contents is None:
+        result = 'Meta: {}'.format(self._meta)
+        if self._contents is None:
             result += '\nNo contents\n'
         else:
-            result += '\nContents: {}\n'.format(self.__contents)
+            result += '\nContents: {}\n'.format(self._contents)
         return result
 
     @property
@@ -124,7 +124,7 @@ class Document:
 
     @property
     def contents(self):
-        return self.__contents
+        return self._contents
 
     @property
     def title(self):
@@ -135,16 +135,16 @@ class Document:
     # already done so
     def fetch_contents(self, client, **kwargs):
         debug('Fetching contents for doc id {}'.format(self.id))
-        if self.__contents is None \
+        if self._contents is None \
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
             try:
                 # fetch from Google's API
-                self.__contents = dict()
-                for url in self.__get_download_urls():
+                self._contents = dict()
+                for url in self._get_download_urls():
                     headers, content = client.request(url)
-                    self.__check_download_integrity(headers, content)
-                    self.__contents[self.__get_file_name(headers)] = content
+                    self._check_download_integrity(headers, content)
+                    self._contents[self._get_file_name(headers)] = content
             except KeyError:
                 # token expired
                 raise ExpiredTokenException()
@@ -157,23 +157,23 @@ class Document:
                 )
 
     def del_contents(self):
-        self.__contents = None
+        self._contents = None
 
     def get_meta(self, key, default=None):
-        if key in self.__meta:
-            return self.__meta[key]
+        if key in self._meta:
+            return self._meta[key]
         return default
 
-    def __get_download_urls(self):
-        if 'downloadUrl' in self.__meta:
-            return [self.__meta['downloadUrl']]
-        elif 'exportLinks' in self.__meta:
-            return self.__meta['exportLinks'].values()
+    def _get_download_urls(self):
+        if 'downloadUrl' in self._meta:
+            return [self._meta['downloadUrl']]
+        elif 'exportLinks' in self._meta:
+            return self._meta['exportLinks'].values()
         else:
             # TODO: log 'no download url for document id XX'
             return None
 
-    def __check_download_integrity(self, headers, content):
+    def _check_download_integrity(self, headers, content):
         debug('Checking download integrity for doc id {}'.format(self.id))
         success, message = True, None
         # content length
@@ -201,10 +201,10 @@ class Document:
                 )
             )
 
-    def __get_file_name(self, headers):
+    def _get_file_name(self, headers):
         # get from the headers
         content_disposition = headers['content-disposition']
-        results = Document.__name_from_header_regex.findall(
+        results = Document._name_from_header_regex.findall(
             content_disposition
         )
         if not results:
@@ -217,7 +217,7 @@ class Document:
         result = urllib2.unquote(results[0])
         # insert the doc id in the name (just before the extension)
         # to make sure it's unique
-        extension_matches = Document.__split_extension_regex.findall(result)
+        extension_matches = Document._split_extension_regex.findall(result)
         if extension_matches:
             name, extension = extension_matches[0]
             result = '{}_{}.{}'.format(name, self.id, extension)

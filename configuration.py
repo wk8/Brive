@@ -9,13 +9,13 @@ from notifier import *
 class Configuration:
 
     def __init__(self, settings_file, constants_file):
-        self.__data = dict()
-        self.__load_from_yml(settings_file)
-        self.__load_from_yml(constants_file)
+        self._data = dict()
+        self._load_from_yml(settings_file)
+        self._load_from_yml(constants_file)
         debug('Configuration loaded')
 
     def __str__(self):
-        return str(self.__data)
+        return str(self._data)
 
     # retrives one or several parameters from the current configuration
     # the only possible named parameter is not_null which will make this method
@@ -27,8 +27,8 @@ class Configuration:
         if len(args) == 1:
             name = args[0]
             if type(name) is str:
-                if name in self.__data:
-                    result = self.__data[name]
+                if name in self._data:
+                    result = self._data[name]
                     if 'is_int' in kwargs and kwargs['is_int']:
                         return int(result)
                     if 'is_bool' in kwargs and kwargs['is_bool']:
@@ -45,20 +45,20 @@ class Configuration:
             )
         return [self.get(name, **kwargs) for name in args]
 
-    def __add_dict(self, dictionary, prefix=''):
+    def _add_dict(self, dictionary, prefix=''):
         if prefix:
             prefix += '_'
         for key, value in dictionary.items():
             if type(value) is dict:
-                self.__add_dict(value, prefix + key)
+                self._add_dict(value, prefix + key)
             elif type(value) is str or type(value) is list:
-                self.__data[prefix + key] = value
+                self._data[prefix + key] = value
 
-    def __load_from_yml(self, yml_file):
+    def _load_from_yml(self, yml_file):
         try:
             stream = open(yml_file)
             dictionary = yaml.load(stream)
-            self.__add_dict(dictionary)
+            self._add_dict(dictionary)
             stream.close()
         except IOError as io_error:
             raise BriveException(io_error)
