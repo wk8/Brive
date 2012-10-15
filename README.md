@@ -1,4 +1,3 @@
-Brive
+Brive, the Google Apps Domains' Drive Backup application
 =====
 
-Google Drive Backup application
