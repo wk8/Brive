@@ -1,4 +1,9 @@
-from setuptools import setup, find_packages
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    print 'Please download and install setuptools (http://pypi.python.org/pypi/setuptools)'
+    exit(1)
+
 setup(
     name = "Brive",
     version = "0.1",
