@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import errno
 import time
 
 from briveexception import *
@@ -28,17 +29,21 @@ class SimpleBackend:
         # create the root directory for this session: UTC ISO-8601 time
         new_root = time.strftime('%Y-%m-%dT%H%M%SZ', time.gmtime())
         self.__mkdir(new_root)
-        self.__root_dir = new_root + os.sep
+        self.__root_dir += new_root + os.sep
+        debug('SimpleBackend loaded')
 
     def need_to_fetch_contents(self, user, document):
         return True
 
     def save(self, user, document):
-        # TODO log...
         self.__mkdir(user.login)
         prefix = self.__root_dir + user.login + os.sep
         for file_name, content in document.contents.items():
-            f = open(prefix + file_name, 'r')
+            file_path = prefix + file_name
+            debug ('Writing {}\'s {} to {}'.format(
+                user.login, document.title, file_path
+            ))
+            f = open(file_path, 'w')
             f.write(content)
             f.close()
 
