@@ -3,6 +3,8 @@ Brive, the Google Apps Domains' Drive Backup application
 
 Brive allows you to backup all the Google Drive documents accessible by all your Google Apps domain's users.
 
+Each time it is run, it creates a full snapshot of your users' Drive accounts' contents.
+
 <h1>Installation</h1>
 
 <h2>Local installation</h2>
