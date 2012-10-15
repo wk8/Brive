@@ -50,7 +50,8 @@ class Configuration:
     # returns the right backend depending on the configuration
     def get_backend(self):
         compression = self.get('backend_compression', is_bool=True)
-        class_name = 'TarBackend' if compression else 'SimpleBackend'
+        class_name = self.get('factories_tar_backend') \
+            if compression else self.get('factories_simple_backend')
         class_object = eval(class_name)
         return class_object(self)
 
