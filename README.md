@@ -11,5 +11,7 @@ Clone the source code:
 
 Then download the dependencies:
 
-`cd Brive
-sudo python setup.py install -n`
+<code>
+cd Brive
+sudo python setup.py install -n
+</code>
