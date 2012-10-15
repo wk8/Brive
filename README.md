@@ -9,4 +9,7 @@ Clone the source code:
 
 `git clone https://github.com/x8wk/Brive.git`
 
-Then
+Then download the dependencies:
+
+`cd Brive
+sudo python setup.py install -n`
