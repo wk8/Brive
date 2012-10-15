@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os
+import sys
 import time
 import argparse
 
@@ -37,12 +37,16 @@ from backend import *
 
 
 def main():
-    configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
-    client = Client(configuration)
-    backend = configuration.get_backend()
-    for user in client.users:
-        user.save_documents(backend)
-    backend.finalize()
+    try:
+        configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
+        client = Client(configuration)
+        backend = configuration.get_backend()
+        for user in client.users:
+            user.save_documents(backend)
+        backend.finalize()
+    except Exception as e:
+        backend.clean_up()
+        sys.stderr.write(str(e))
 
 
 if __name__ == '__main__':

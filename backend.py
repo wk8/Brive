@@ -4,6 +4,7 @@ import os
 import errno
 import time
 import tarfile
+import shutil
 from StringIO import StringIO
 
 from briveexception import *
@@ -34,6 +35,10 @@ class BaseBackend(object):
                 raise
 
     def finalize(self):
+        pass
+
+    # called to clean up if there was an exception halfway through
+    def clean_up(self):
         pass
 
     # UTC ISO-8601 time
@@ -73,6 +78,11 @@ class SimpleBackend(BaseBackend):
             f.write(content)
             f.close()
 
+    def clean_up(self):
+        verbose('Unexpected shutdown, deleting {} folder'
+                .format(self._root_dir))
+        shutil.rmtree(self._root_dir)
+
 
 # also downloads everything, but compresses it
 class TarBackend(BaseBackend):
@@ -87,9 +97,9 @@ class TarBackend(BaseBackend):
                 '{} given'.format(format)
             )
         self._dir_name = BaseBackend._get_session_dir_name()
-        tar_file_name = self._dir_name + '.tar.' + format
+        self._tar_file_name = self._dir_name + '.tar.' + format
         self._tarfile = tarfile.open(
-            self._root_dir + tar_file_name, 'w:' + format
+            self._root_dir + self._tar_file_name, 'w:' + format
         )
         debug('TarBackend loaded')
 
@@ -106,3 +116,8 @@ class TarBackend(BaseBackend):
 
     def finalize(self):
         self._tarfile.close()
+
+    def clean_up(self):
+        verbose('Unexpected shutdown, deleting {} file'
+                .format(self._tar_file_name))
+        os.remove(self._root_dir + self._tar_file_name)
