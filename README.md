@@ -24,16 +24,18 @@ Still in the Brive directory,
 then open `settings.yml` with your favorite text editor. In that file, please fill in the two 'google > domain' entries (your domain name, and the login of one of your administator users).
 
 We will now create your private Google App application : log into your Google Apps domain control panel as an administrator, then:
-1. Create an API project in the Google APIs Console: https://code.google.com/apis/console/b/0/
-2. Select the 'Services' tab in your API project, and enable the Drive API
-3. Select the 'API Access' tab in your API project, and click 'Create an OAuth 2.0 client ID'
-4. In the 'Branding Information section', provide a name for your application (whatever you want), and click 'Next'. Providing a product logo is optional.
-5. In the Client ID Settings section, select 'Service account' for the 'Application type', then click 'Create client ID'
-6. Report your private key's password (should be 'notascret') to the 'google > app > p12_secret' entry of your `settings.yml` file
-7. Click 'Download private key', save the file in Brive's directory, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file
-8. You can now close the 'Public-Private Key Pair Generated' popup
-9. In the 'Service account' section now displayed, please report the 'Email address' value (should be of the form %some_id%@334156113202@developer.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file
-10. Still in the 'Service account' section, mark down the 'Client ID' value (should be of the form %same_id_as_in_email_address_%334156113202.apps.googleusercontent.com)
+<ol>
+<li> Create an API project in the Google APIs Console: https://code.google.com/apis/console/b/0/</li>
+<li> Select the 'Services' tab in your API project, and enable the Drive API</li>
+<li> Select the 'API Access' tab in your API project, and click 'Create an OAuth 2.0 client ID'</li>
+<li> In the 'Branding Information section', provide a name for your application (whatever you want), and click 'Next'. Providing a product logo is optional.</li>
+<li> In the Client ID Settings section, select 'Service account' for the 'Application type', then click 'Create client ID'</li>
+<li> Report your private key's password (should be 'notascret') to the 'google > app > p12_secret' entry of your `settings.yml` file</li>
+<li> Click 'Download private key', save the file in Brive's directory, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file</li>
+<li> You can now close the 'Public-Private Key Pair Generated' popup</li>
+<li> In the 'Service account' section now displayed, please report the 'Email address' value (should be of the form %some_id%@334156113202@developer.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file</li>
+<li> Still in the 'Service account' section, mark down the 'Client ID' value (should be of the form %same_id_as_in_email_address_%334156113202.apps.googleusercontent.com)</li>
+</ol>
 
 Now we need to grant the necessary access rights to this application on your domain:
 1. Open your domain's control panel (https://www.google.com/a/cpanel/%your-domain-name%)
