@@ -36,16 +36,16 @@ We will now create your private Google App application : log into your Google Ap
 <li> Click 'Download private key', save the file in Brive's directory, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file </li>
 <li> You can now close the 'Public-Private Key Pair Generated' popup </li>
 <li> In the 'Service account' section now displayed, please report the 'Email address' value (should be of the form %some_id%@334156113202@developer.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file </li>
-<li> Still in the 'Service account' section, mark down the 'Client ID' value (should be of the form %same_id_as_in_email_address%334156113202.apps.googleusercontent.com) </li>
+<li> Still in the 'Service account' section, save for later the 'Client ID' value (should be of the form %same_id_as_in_email_address%334156113202.apps.googleusercontent.com) </li>
 </ol>
 
 Now we need to grant the necessary access rights to this application on your domain:
 <ol>
 <li> Open your domain's control panel (https://www.google.com/a/cpanel/%your-domain-name%) </li>
-<li> Go to the 'Advanced tools' tab, and click the 'Manage third parties party OAuth Client access' in the 'Authentication' section </li>
+<li> Go to the 'Advanced tools' tab, and click the 'Manage third parties party OAuth Client access' link in the 'Authentication' section </li>
 <li> In the 'Client Name' field, report the 'Client ID' value you saved from step 10 above </li>
 <li> In the 'One or More API Scopes', please copy and paste:
-`https://apps-apis.google.com/a/feeds/user/,https://www.googleapis.com/auth/drive.readonly`
+<code>https://apps-apis.google.com/a/feeds/user/,https://www.googleapis.com/auth/drive.readonly</code>
 (the first one allows your application to get the list of all users on your domain, the second one to fetch the data from your users' Drive accounts) </li>
 </ol>
 
@@ -53,7 +53,7 @@ Now we need to grant the necessary access rights to this application on your dom
 
 <h1>How to use</h1>
 
-When in your Brive directory, just execute the `brive.py` file. Additionally, you can pass it a `-v` to run it in verbose mode, or `-d` to run it in debug mode (more output).
+When in your Brive directory, just execute the `brive.py` file. Additionally, you can pass it a `-v` flag to run it in verbose mode, or `-d` to run it in debug mode (more output).
 
 The exit code will be 0 if and only if the backup was successful. If it wasn't, you should get an explanatory message in your `stderr` stream.
 
