@@ -3,7 +3,7 @@ google:
     app:
         email:  'XXX@developer.gserviceaccount.com' # %APP_ID%@developer.gserviceaccount.com
         p12_file: 'XXX.p12' # path to the p12 file containing your app's private_key
-        p12_secret: 'notascret' # secret on the p12 file
+        p12_secret: 'notasecret' # secret on the p12 file
 
     # about your google apps domain
     domain:

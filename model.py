@@ -172,8 +172,8 @@ class Document:
         elif 'exportLinks' in self._meta:
             return self._meta['exportLinks'].values()
         else:
-            # TODO: log 'no download url for document id XX'
-            return None
+            verbose('No download URL for document id {}'.format(self.id))
+            return []
 
     def _check_download_integrity(self, headers, content):
         debug('Checking download integrity for doc id {}'.format(self.id))
