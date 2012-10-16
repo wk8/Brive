@@ -37,6 +37,8 @@ from backend import *
 
 
 def main():
+    backend = None
+
     try:
         configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
         client = Client(configuration)
@@ -45,7 +47,8 @@ def main():
             user.save_documents(backend)
         backend.finalize()
     except Exception as e:
-        backend.clean_up()
+        if backend:
+            backend.clean_up()
         sys.stderr.write(str(e))
         exit(1)
 
