@@ -131,7 +131,7 @@ class Client:
                         u'Http request failed (return code: {})'.format(status)
                     )
             return result
-        except:
+        except Exception:
             if try_nb >= Client._max_request_tries:
                 raise
             kwargs.update({

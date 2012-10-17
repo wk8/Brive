@@ -111,7 +111,7 @@ class User:
             client.authorize(self)
             drive_service = client.build_service('drive', 'v2')
             return drive_service.files().list().execute()
-        except:
+        except Exception:
             if try_nb >= User._max_request_tries:
                 raise
             return self._do_fetch_docs_list(try_nb + 1)
@@ -187,7 +187,7 @@ class Document:
         except KeyError:
             # token expired
             raise ExpiredTokenException()
-        except:
+        except Exception:
             if try_nb >= Document._max_download_tries:
                 raise
             return self._download_from_url(client, url, try_nb + 1)
