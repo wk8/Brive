@@ -25,8 +25,11 @@ class Log:
             timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
             for arg in args:
                 print u'[ {} ] '.format(timestamp) + arg
-        Log.debug = pprint if debug else lambda *args: None
-        Log.verbose = pprint if verbose or debug else lambda *args: None
+        @staticmethod
+        def void(*args):
+            pass
+        Log.debug = pprint if debug else void
+        Log.verbose = pprint if verbose or debug else void
 
 # local imports
 from configuration import *

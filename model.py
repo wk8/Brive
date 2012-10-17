@@ -107,14 +107,17 @@ class User:
 
     def _do_fetch_docs_list(self, try_nb=1):
         try:
-            client = self._client
-            client.authorize(self)
-            drive_service = client.build_service('drive', 'v2')
-            return drive_service.files().list().execute()
+            return self.drive_service.files().list().execute()
         except Exception:
             if try_nb >= User._max_request_tries:
                 raise
             return self._do_fetch_docs_list(try_nb + 1)
+
+    @property
+    def drive_service(self):
+        client = self._client
+        client.authorize(self)
+        return client.drive_service
 
 
 class Document:

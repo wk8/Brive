@@ -8,7 +8,7 @@ import feedparser
 
 from httplib2 import Http
 from OpenSSL.crypto import Error as CryptoError
-from oauth2client.client import SignedJwtAssertionCredentials
+from oauth2client.client import SignedJwtAssertionCredentials, AccessTokenRefreshError
 from apiclient.discovery import build
 
 from model import User
@@ -67,9 +67,14 @@ class Client:
     def __init__(self, config):
         self._reset()
         self._creds = Credentials(config, self._http)
-        self._domain, admin_login, users_api_endpoint = \
-            config.get('google_domain_name', 'google_domain_admin_login',
-                       'google_api_users_endpoint', not_null=True)
+        self._domain, admin_login, users_api_endpoint, \
+            self._drv_svc_name, self._drv_svc_version = \
+                config.get('google_domain_name',
+                           'google_domain_admin_login',
+                           'google_api_users_endpoint',
+                           'google_api_drive_name',
+                           'google_api_drive_version',
+                           not_null=True)
         self._admin = User(admin_login, self)
         self._users_api_endpoint = \
             users_api_endpoint.format(domain_name=self._domain)
@@ -86,6 +91,10 @@ class Client:
 
     def build_service(self, service_name, api_version):
         return build(service_name, api_version, self._http)
+
+    @property
+    def drive_service(self):
+        return self.build_service(self._drv_svc_name, self._drv_svc_version)
 
     # retrieve the list of all users on the domain
     @property
