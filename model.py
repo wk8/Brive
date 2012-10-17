@@ -37,7 +37,7 @@ class User:
         return self._documents
 
     def save_documents(self, backend):
-        verbose('Processing docs for {}'.format(self.login))
+        verbose(u'Processing docs for {}'.format(self.login))
         # list of processed ids
         done = list()
         # keep track of errors that happen twice in a row
@@ -45,14 +45,14 @@ class User:
         self._fetch_docs_list()
         while self._documents:
             document = self._documents.pop()
-            verbose('Processing {}\'s doc "{}" (id: {})'.format(
+            verbose(u'Processing {}\'s doc "{}" (id: {})'.format(
                 self.login, document.title, document.id
             ))
             try:
                 if not backend.need_to_fetch_contents(self, document):
                     # mark as done, and get to the next one
                     verbose(
-                        'Not necessary to fetch doc id '.format(document.id)
+                        u'Not necessary to fetch doc id '.format(document.id)
                     )
                     done.append(document.id)
                     continue
@@ -62,8 +62,8 @@ class User:
                 if second_error:
                     raise Exception(
                         'Two oauth errors in a row while processing'
-                        + '{}\'s documents '.format(self.login)
-                        + '(doc id: {}), '.format(document.id)
+                        + u'{}\'s documents '.format(self.login)
+                        + u'(doc id: {}), '.format(document.id)
                         + 're-authentication failed'
                     )
                 else:
@@ -74,11 +74,11 @@ class User:
                 explanation = \
                     'Unexpected error when processing ' \
                     + '{}\'s documents '.format(self.login) \
-                    + '(doc id: {})'.format(document.id)
+                    + u'(doc id: {})'.format(document.id)
                 ex.brive_explanation = explanation
                 raise
             try:
-                verbose('Saving {}\'s doc "{}" (id: {})'.format(
+                verbose(u'Saving {}\'s doc "{}" (id: {})'.format(
                     self.login, document.title, document.id
                 ))
                 backend.save(self, document)
@@ -86,7 +86,7 @@ class User:
                 explanation = \
                     'Unexpected error when saving ' \
                     + '{}\'s documents '.format(self.login) \
-                    + '(doc id: {})'.format(document.id)
+                    + u'(doc id: {})'.format(document.id)
                 ex.brive_explanation = explanation
                 raise
             # no need to keep the potentially big document's contents in memory
@@ -101,7 +101,7 @@ class User:
             docs_list = self._do_fetch_docs_list()
         except Exception as e:
             e.brive_explanation = \
-                'Unable to retrieve {}\'s docs list'.format(self.login)
+                u'Unable to retrieve {}\'s docs list'.format(self.login)
             raise
         self._documents = [Document(meta) for meta in docs_list['items']
                            if meta['id'] not in done]
@@ -131,11 +131,11 @@ class Document:
         self._contents = None
 
     def __repr__(self):
-        result = 'Meta: {}'.format(self._meta)
+        result = u'Meta: {}'.format(self._meta)
         if self._contents is None:
             result += '\nNo contents\n'
         else:
-            result += '\nContents: {}\n'.format(self._contents)
+            result += u'\nContents: {}\n'.format(self._contents)
         return result
 
     @property
@@ -154,7 +154,7 @@ class Document:
     # force_refresh = True forces to re-fetch the contents even if we have
     # already done so
     def fetch_contents(self, client, **kwargs):
-        debug('Fetching contents for doc id {}'.format(self.id))
+        debug(u'Fetching contents for doc id {}'.format(self.id))
         if self._contents is None \
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
@@ -177,7 +177,7 @@ class Document:
         elif 'exportLinks' in self._meta:
             return self._meta['exportLinks'].values()
         else:
-            verbose('No download URL for document id {}'.format(self.id))
+            verbose(u'No download URL for document id {}'.format(self.id))
             return []
 
     def _download_from_url(self, client, url, try_nb=1):
@@ -194,13 +194,13 @@ class Document:
             return self._download_from_url(client, url, try_nb + 1)
 
     def _check_download_integrity(self, headers, content):
-        debug('Checking download integrity for doc id {}'.format(self.id))
+        debug(u'Checking download integrity for doc id {}'.format(self.id))
         success, message = True, None
         # content length
         content_length = int(headers.get('content-length', 0))
         if content_length and content_length != StringIO(content).len:
             success = False
-            message = 'expected length {} VS actual length {}'.format(
+            message = u'expected length {} VS actual length {}'.format(
                 content_length, len(content)
             )
         # md5 check
@@ -211,12 +211,12 @@ class Document:
             actual_sum = md5_object.hexdigest()
             if expected_sum != actual_sum:
                 success = False
-                message = 'expected md5 sum {} VS actual {}'.format(
+                message = u'expected md5 sum {} VS actual {}'.format(
                     expected_sum, actual_sum
                 )
         if not success:
             raise Exception(
-                'Failed to download document id {}: {}'.format(
+                u'Failed to download document id {}: {}'.format(
                     self.id, message
                 )
             )
@@ -229,7 +229,7 @@ class Document:
         )
         if not results:
             raise Exception(
-                'Unexpected "content_disposition" header: {}'.format(
+                u'Unexpected "content_disposition" header: {}'.format(
                     content_disposition
                 )
             )
@@ -240,8 +240,8 @@ class Document:
         extension_matches = Document._split_extension_regex.findall(result)
         if extension_matches:
             name, extension = extension_matches[0]
-            result = '{}_{}.{}'.format(name, self.id, extension)
+            result = u'{}_{}.{}'.format(name, self.id, extension)
         else:
             # no extension (shouldn't happen as far as I can tell)
-            result += '_{}'.format(self.id)
+            result += u'_{}'.format(self.id)
         return result

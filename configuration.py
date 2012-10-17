@@ -37,12 +37,13 @@ class Configuration:
                     return result
                 if 'not_null' in kwargs and kwargs['not_null']:
                     raise Exception(
-                        'Missing required configuration parameter: {}'
+                        u'Missing required configuration parameter: {}'
                         .format(name)
                     )
                 return None
             raise Exception(
-                'Invalid argument for Configuration.get: {}'.format(repr(name))
+                u'Invalid argument for Configuration.get: {}'
+                .format(repr(name))
             )
         return [self.get(name, **kwargs) for name in args]
 

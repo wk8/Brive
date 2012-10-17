@@ -79,7 +79,7 @@ class Client:
 
     # authorizes the given user
     def authorize(self, user):
-        debug('Authorizing client for {}'.format(user.login))
+        debug(u'Authorizing client for {}'.format(user.login))
         self._reset()
         signed_assertion = self._creds.get_signed_assertion(
             prn=self._get_email_address(user)
@@ -102,18 +102,18 @@ class Client:
                 data = feedparser.parse(xml)
                 result = [User(user['title'], self)
                           for user in data['entries']]
-                verbose('Found users: {}'.format(result))
+                verbose(u'Found users: {}'.format(result))
                 return result
             elif status == 403:
-                raise Exception('User {} is not an admin'
+                raise Exception(u'User {} is not an admin'
                                 .format(self._admin.login))
             else:
                 raise Exception(
                     'Unexpected HTP status when requesting users\' list'
-                    + ': {}\nResponse: {}'.format(status, xml))
+                    + u': {}\nResponse: {}'.format(status, xml))
         except AccessTokenRefreshError as oauth_error:
             explanation = \
-                'App not authorized on {}'.format(self._domain) \
+                u'App not authorized on {}'.format(self._domain) \
                 + '(or your admin user doesn\'t exist)'
             oauth_error.brive_explanation = explanation
             raise
@@ -128,7 +128,7 @@ class Client:
                 status = int(headers['status'])
                 if status != 200:
                     raise Exception(
-                        'Http request failed (return code: {})'.format(status)
+                        u'Http request failed (return code: {})'.format(status)
                     )
             return result
         except:

@@ -51,7 +51,7 @@ class BaseBackend(object):
 class DummyBackend(BaseBackend):
 
     def save(self, user, document):
-        print 'Backend save for user {}: {}'.format(user, repr(document))
+        print u'Backend save for user {}: {}'.format(user, repr(document))
 
 
 # simplest backend possible: just download everything
@@ -70,7 +70,7 @@ class SimpleBackend(BaseBackend):
         prefix = self._root_dir + user.login + os.sep
         for file_name, content in document.contents.items():
             path = prefix + file_name
-            debug('Writing {}\'s {} to {}'.format(
+            debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))
             f = open(path, 'w')
@@ -78,7 +78,7 @@ class SimpleBackend(BaseBackend):
             f.close()
 
     def clean_up(self):
-        verbose('Unexpected shutdown, deleting {} folder'
+        verbose(u'Unexpected shutdown, deleting {} folder'
                 .format(self._root_dir))
         shutil.rmtree(self._root_dir)
 
@@ -93,7 +93,7 @@ class TarBackend(BaseBackend):
         if cformat not in ('gz', 'bz2'):
             raise Exception(
                 'The compression format must be either gz or bz2, '
-                + '{} given'.format(format)
+                + u'{} given'.format(format)
             )
         self._dir_name = BaseBackend._get_session_dir_name()
         self._tar_file_name = self._dir_name + '.tar.' + cformat
@@ -105,7 +105,7 @@ class TarBackend(BaseBackend):
     def save(self, user, document):
         for file_name, content in document.contents.items():
             path = self._dir_name + os.sep + user.login + os.sep + file_name
-            debug('Writing {}\'s {} to {}'.format(
+            debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))
             file_object = StringIO(content)
@@ -117,6 +117,6 @@ class TarBackend(BaseBackend):
         self._tarfile.close()
 
     def clean_up(self):
-        verbose('Unexpected shutdown, deleting {} file'
+        verbose(u'Unexpected shutdown, deleting {} file'
                 .format(self._tar_file_name))
         os.remove(self._root_dir + self._tar_file_name)

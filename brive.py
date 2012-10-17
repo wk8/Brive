@@ -26,7 +26,7 @@ ARGS = parser.parse_args()
 def pprint(*args):
     timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
     for arg in args:
-        print '[ {} ] '.format(timestamp) + arg
+        print u'[ {} ] '.format(timestamp) + arg
 
 verbose = pprint if ARGS.VERBOSE or ARGS.DEBUG else lambda *args: None
 debug = pprint if ARGS.DEBUG else lambda *args: None
@@ -57,7 +57,7 @@ def main():
             except:
                 pass
         if hasattr(ex, 'brive_explanation'):
-            print '### {} ###'.format(ex.brive_explanation)
+            print u'### {} ###'.format(ex.brive_explanation)
         raise
 
 
