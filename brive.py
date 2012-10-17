@@ -30,9 +30,8 @@ class Log:
 
 # local imports
 from configuration import *
-from client import *
-from model import *
-from backend import *
+from client import Client
+from model import User
 
 
 def main():

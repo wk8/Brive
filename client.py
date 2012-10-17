@@ -8,13 +8,11 @@ import feedparser
 
 from httplib2 import Http
 from OpenSSL.crypto import Error as CryptoError
-from oauth2client.client import *
+from oauth2client.client import SignedJwtAssertionCredentials
 from apiclient.discovery import build
 
-from configuration import *
-from backend import *
-from model import *
-from brive import *
+from model import User
+from brive import Log
 
 
 class Credentials:

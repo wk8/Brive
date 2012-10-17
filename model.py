@@ -4,8 +4,8 @@ import md5
 import re
 from StringIO import StringIO
 
-from client import *
-from brive import *
+from client import ExpiredTokenException
+from brive import Log
 
 
 class User:
