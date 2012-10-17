@@ -5,21 +5,11 @@ import sys
 import time
 import argparse
 
-# set some constants
-SETTINGS_FILE = 'settings.yml'
-CONSTANTS_FILE = 'constants.yml'
 
-# argument processing
-parser = argparse.ArgumentParser(
-    description='Backup all your Google Apps domain\'s users\'s Drive docs.'
-)
-parser.add_argument('-v', dest='VERBOSE', action='store_const',
-                    const=True, default=False, help='Verbose mode')
-parser.add_argument('-d', dest='DEBUG', action='store_const',
-                    const=True, default=False, help='Debug mode')
-parser.add_argument('-u', dest='users', metavar='login', type=str, nargs='+',
-                    default=None, help='Custom logins instead of all of them')
-ARGS = parser.parse_args()
+class SettingsFiles:
+
+    SETTINGS_FILE = r'settings.yml'
+    CONSTANTS_FILE = r'constants.yml'
 
 
 class Log:
@@ -45,19 +35,31 @@ from model import *
 from backend import *
 
 
-    
-
-    
-
-
 def main():
+    # argument processing
+    parser = argparse.ArgumentParser(
+        description='Backup all your Google Apps domain\'s users\'s Drive docs'
+    )
+    parser.add_argument('-v', dest='verbose', action='store_const',
+                        const=True, default=False, help='Verbose mode')
+    parser.add_argument('-d', dest='debug', action='store_const',
+                        const=True, default=False, help='Debug mode')
+    parser.add_argument('-u', dest='users', metavar='login',
+                        type=str, nargs='+', default=None,
+                        help='Custom logins instead of all of them')
+    args = parser.parse_args()
+
+    # load the logger functions
+    Log.init(args.verbose, args.debug)
+
+    # down to business
     backend = None
-    Log.init(True, True)
     try:
-        configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
+        configuration = Configuration(SettingsFiles.SETTINGS_FILE,
+                                      SettingsFiles.CONSTANTS_FILE)
         client = Client(configuration)
         backend = configuration.get_backend()
-        users = [User(login, client) for login in ARGS.users] if ARGS.users \
+        users = [User(login, client) for login in args.users] if args.users \
             else client.users
         for user in users:
             user.save_documents(backend)

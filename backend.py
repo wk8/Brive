@@ -79,7 +79,7 @@ class SimpleBackend(BaseBackend):
 
     def clean_up(self):
         Log.verbose(u'Unexpected shutdown, deleting {} folder'
-                .format(self._root_dir))
+                    .format(self._root_dir))
         shutil.rmtree(self._root_dir)
 
 
@@ -118,5 +118,5 @@ class TarBackend(BaseBackend):
 
     def clean_up(self):
         Log.verbose(u'Unexpected shutdown, deleting {} file'
-                .format(self._tar_file_name))
+                    .format(self._tar_file_name))
         os.remove(self._root_dir + self._tar_file_name)
