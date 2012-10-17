@@ -2,7 +2,6 @@
 
 import md5
 import re
-import urllib2
 from StringIO import StringIO
 
 from client import *
@@ -121,7 +120,7 @@ class User:
 class Document:
 
     _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
-    _split_extension_regex = re.compile(r'(^.*)\.([^.]+)$')
+    _split_extension_regex = re.compile(r'\.([^.]+)$')
 
     # if a download fails, we'll re-try it that many times at most
     _max_download_tries = 3
@@ -215,33 +214,30 @@ class Document:
                     expected_sum, actual_sum
                 )
         if not success:
-            raise Exception(
-                u'Failed to download document id {}: {}'.format(
-                    self.id, message
-                )
+            err_message = u'Failed to download document id {}: {}'.format(
+                self.id, message
             )
+            verbose(err_message)
+            raise Exception(err_message)
 
     def _get_file_name(self, headers):
         # get from the headers
         content_disposition = headers['content-disposition']
-        results = Document._name_from_header_regex.findall(
+        name_matches = Document._name_from_header_regex.findall(
             content_disposition
         )
-        if not results:
+        if not name_matches:
             raise Exception(
                 u'Unexpected "content_disposition" header: {}'.format(
                     content_disposition
                 )
             )
-        # urldecode
-        result = urllib2.unquote(results[0])
+        raw_name = name_matches[0]
+        result = u'{}_{}'.format(self.title, self.id)
         # insert the doc id in the name (just before the extension)
         # to make sure it's unique
-        extension_matches = Document._split_extension_regex.findall(result)
+        extension_matches = Document._split_extension_regex.findall(raw_name)
         if extension_matches:
-            name, extension = extension_matches[0]
-            result = u'{}_{}.{}'.format(name, self.id, extension)
-        else:
-            # no extension (shouldn't happen as far as I can tell)
-            result += u'_{}'.format(self.id)
+            extension = extension_matches[0]
+            result += u'.{}'.format(extension)
         return result
