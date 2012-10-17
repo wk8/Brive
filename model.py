@@ -36,7 +36,7 @@ class User:
         return self._documents
 
     def save_documents(self, backend):
-        verbose(u'Processing docs for {}'.format(self.login))
+        Log.verbose(u'Processing docs for {}'.format(self.login))
         # list of processed ids
         done = list()
         # keep track of errors that happen twice in a row
@@ -44,13 +44,13 @@ class User:
         self._fetch_docs_list()
         while self._documents:
             document = self._documents.pop()
-            verbose(u'Processing {}\'s doc "{}" (id: {})'.format(
+            Log.verbose(u'Processing {}\'s doc "{}" (id: {})'.format(
                 self.login, document.title, document.id
             ))
             try:
                 if not backend.need_to_fetch_contents(self, document):
                     # mark as done, and get to the next one
-                    verbose(
+                    Log.verbose(
                         u'Not necessary to fetch doc id '.format(document.id)
                     )
                     done.append(document.id)
@@ -77,7 +77,7 @@ class User:
                 ex.brive_explanation = explanation
                 raise
             try:
-                verbose(u'Saving {}\'s doc "{}" (id: {})'.format(
+                Log.verbose(u'Saving {}\'s doc "{}" (id: {})'.format(
                     self.login, document.title, document.id
                 ))
                 backend.save(self, document)
@@ -95,7 +95,7 @@ class User:
 
     # fetches the documents' list, except those whose ids are in 'done'
     def _fetch_docs_list(self, done=list()):
-        debug('Fetching doc list for {}'.format(self.login))
+        Log.debug('Fetching doc list for {}'.format(self.login))
         try:
             docs_list = self._do_fetch_docs_list()
         except Exception as e:
@@ -153,7 +153,7 @@ class Document:
     # force_refresh = True forces to re-fetch the contents even if we have
     # already done so
     def fetch_contents(self, client, **kwargs):
-        debug(u'Fetching contents for doc id {}'.format(self.id))
+        Log.debug(u'Fetching contents for doc id {}'.format(self.id))
         if self._contents is None \
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
@@ -176,7 +176,7 @@ class Document:
         elif 'exportLinks' in self._meta:
             return self._meta['exportLinks'].values()
         else:
-            verbose(u'No download URL for document id {}'.format(self.id))
+            Log.verbose(u'No download URL for document id {}'.format(self.id))
             return []
 
     def _download_from_url(self, client, url, try_nb=1):
@@ -193,7 +193,7 @@ class Document:
             return self._download_from_url(client, url, try_nb + 1)
 
     def _check_download_integrity(self, headers, content):
-        debug(u'Checking download integrity for doc id {}'.format(self.id))
+        Log.debug(u'Checking download integrity for doc id {}'.format(self.id))
         success, message = True, None
         # content length
         content_length = int(headers.get('content-length', 0))
@@ -217,7 +217,7 @@ class Document:
             err_message = u'Failed to download document id {}: {}'.format(
                 self.id, message
             )
-            verbose(err_message)
+            Log.verbose(err_message)
             raise Exception(err_message)
 
     def _get_file_name(self, headers):

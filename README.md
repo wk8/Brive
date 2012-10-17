@@ -53,7 +53,7 @@ Now we need to grant the necessary access rights to this application on your dom
 
 <h1>How to use</h1>
 
-When in your Brive directory, just execute the `brive.py` file. Additionally, you can pass it a `-v` flag to run it in verbose mode, or `-d` to run it in debug mode (more output).
+When in your Brive directory, just execute the `brive.py` file. Additionally, you can pass it a `-v` flag to run it in verbose mode, or `-d` to run it in Log.debug mode (more output).
 
 The exit code will be 0 if and only if the backup was successful. If it wasn't, you should get an explanatory message in your `stderr` stream.
 

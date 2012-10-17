@@ -13,7 +13,7 @@ class Configuration:
         self._data = dict()
         self._load_from_yml(constants_file)
         self._load_from_yml(settings_file)
-        debug('Configuration loaded')
+        Log.debug('Configuration loaded')
 
     def __str__(self):
         return str(self._data)

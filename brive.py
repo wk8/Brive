@@ -22,14 +22,21 @@ parser.add_argument('-u', dest='users', metavar='login', type=str, nargs='+',
 ARGS = parser.parse_args()
 
 
-# define some logging functions
-def pprint(*args):
-    timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
-    for arg in args:
-        print u'[ {} ] '.format(timestamp) + arg
+class Log:
 
-verbose = pprint if ARGS.VERBOSE or ARGS.DEBUG else lambda *args: None
-debug = pprint if ARGS.DEBUG else lambda *args: None
+    @staticmethod
+    def verbose(*args):
+        pass
+
+    @staticmethod
+    def init(verbose, debug):
+        @staticmethod
+        def pprint(*args):
+            timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
+            for arg in args:
+                print u'[ {} ] '.format(timestamp) + arg
+        Log.debug = pprint if debug else lambda *args: None
+        Log.verbose = pprint if verbose or debug else lambda *args: None
 
 # local imports
 from configuration import *
@@ -38,9 +45,14 @@ from model import *
 from backend import *
 
 
+    
+
+    
+
+
 def main():
     backend = None
-
+    Log.init(True, True)
     try:
         configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
         client = Client(configuration)
