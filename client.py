@@ -72,9 +72,6 @@ class Client:
         self._domain, admin_login, users_api_endpoint = \
             config.get('google_domain_name', 'google_domain_admin_login',
                        'google_api_users_endpoint', not_null=True)
-        # check that we have only the admin's login, not the full email address
-        if '@' in admin_login:
-            admin_login = admin_login.partition('@')[0]
         self._admin = User(admin_login, self)
         self._users_api_endpoint = \
             users_api_endpoint.format(domain_name=self._domain)

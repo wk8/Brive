@@ -16,6 +16,9 @@ class User:
     _max_request_tries = 3
 
     def __init__(self, login, client):
+        # check that we have only the login, not the full email address
+        if '@' in login:
+            login = login.partition('@')[0]
         self._login = login
         self._client = client
         self._documents = None

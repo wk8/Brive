@@ -17,7 +17,9 @@ parser.add_argument('-v', dest='VERBOSE', action='store_const',
                     const=True, default=False, help='Verbose mode')
 parser.add_argument('-d', dest='DEBUG', action='store_const',
                     const=True, default=False, help='Debug mode')
-args = parser.parse_args()
+parser.add_argument('-u', dest='users', metavar='login', type=str, nargs='+',
+                    default=None, help='Custom logins instead of all of them')
+ARGS = parser.parse_args()
 
 
 # define some logging functions
@@ -26,8 +28,8 @@ def pprint(*args):
     for arg in args:
         print '[ {} ] '.format(timestamp) + arg
 
-verbose = pprint if args.VERBOSE or args.DEBUG else lambda *args: None
-debug = pprint if args.DEBUG else lambda *args: None
+verbose = pprint if ARGS.VERBOSE or ARGS.DEBUG else lambda *args: None
+debug = pprint if ARGS.DEBUG else lambda *args: None
 
 # local imports
 from configuration import *
@@ -43,12 +45,17 @@ def main():
         configuration = Configuration(SETTINGS_FILE, CONSTANTS_FILE)
         client = Client(configuration)
         backend = configuration.get_backend()
-        for user in client.users:
+        users = [User(login, client) for login in ARGS.users] if ARGS.users \
+            else client.users
+        for user in users:
             user.save_documents(backend)
         backend.finalize()
     except Exception as ex:
         if backend:
-            backend.clean_up()
+            try:
+                backend.clean_up()
+            except:
+                pass
         if hasattr(ex, 'brive_explanation'):
             print '### {} ###'.format(ex.brive_explanation)
         raise
