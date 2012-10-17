@@ -89,16 +89,16 @@ class TarBackend(BaseBackend):
     def __init__(self, config):
         super(TarBackend, self).__init__(config)
         self._mkdir()
-        format = config.get('backend_compression_format', not_null=True)
-        if format not in ('gz', 'bz2'):
+        cformat = config.get('backend_compression_format', not_null=True)
+        if cformat not in ('gz', 'bz2'):
             raise Exception(
                 'The compression format must be either gz or bz2, '
                 + '{} given'.format(format)
             )
         self._dir_name = BaseBackend._get_session_dir_name()
-        self._tar_file_name = self._dir_name + '.tar.' + format
+        self._tar_file_name = self._dir_name + '.tar.' + cformat
         self._tarfile = tarfile.open(
-            self._root_dir + self._tar_file_name, 'w:' + format
+            self._root_dir + self._tar_file_name, 'w:' + cformat
         )
         debug('TarBackend loaded')
 

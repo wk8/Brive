@@ -61,6 +61,9 @@ class Credentials:
 
 class Client:
 
+    # if a request fails, we'll re-try it that many times at most
+    _max_request_tries = 3
+
     # FIXME: check extended scopes, and see that we fail,
     # otherwise issue a warning
     def __init__(self, config):
@@ -85,7 +88,6 @@ class Client:
             prn=self._get_email_address(user)
         )
         signed_assertion.authorize(self._http)
-        self._curent_user = user
 
     def build_service(self, service_name, api_version):
         return build(service_name, api_version, self._http)
@@ -95,7 +97,9 @@ class Client:
     def users(self):
         try:
             self.authorize(self._admin)
-            headers, xml = self.request(self._users_api_endpoint)
+            headers, xml = self.request(
+                self._users_api_endpoint, brive_check_status=False
+            )
             status = int(headers['status'])
             if status == 200:
                 data = feedparser.parse(xml)
@@ -118,7 +122,26 @@ class Client:
             raise
 
     def request(self, *args, **kwargs):
-        return self._http.request(*args, **kwargs)
+        try_nb = kwargs.pop('brive_try_nb', 1)
+        check_status_code = kwargs.pop('brive_check_status', True)
+        try:
+            result = self._http.request(*args, **kwargs)
+            if check_status_code:
+                headers = result[0]
+                status = int(headers['status'])
+                if status != 200:
+                    raise Exception(
+                        'Http request failed (return code: {})'.format(status)
+                    )
+            return result
+        except:
+            if try_nb >= Client._max_request_tries:
+                raise
+            kwargs.update({
+                'brive_try_nb': try_nb + 1,
+                'brive_check_status': check_status_code
+            })
+            return self.request(*args, **kwargs)
 
     def _get_email_address(self, user):
         return '{}@{}'.format(user.login, self._domain)

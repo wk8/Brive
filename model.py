@@ -11,6 +11,10 @@ from brive import *
 
 class User:
 
+    # if a request to get the docs' list fails
+    # we'll re-try it that many times at most
+    _max_request_tries = 3
+
     def __init__(self, login, client):
         self._login = login
         self._client = client
@@ -49,7 +53,7 @@ class User:
                     )
                     done.append(document.id)
                     continue
-                contents = document.fetch_contents(self._client)
+                document.fetch_contents(self._client)
                 second_error = False
             except ExpiredTokenException:
                 if second_error:
@@ -90,18 +94,31 @@ class User:
     # fetches the documents' list, except those whose ids are in 'done'
     def _fetch_docs_list(self, done=list()):
         debug('Fetching doc list for {}'.format(self.login))
-        client = self._client
-        client.authorize(self)
-        drive_service = client.build_service('drive', 'v2')
-        docs_list = drive_service.files().list().execute()
+        try:
+            docs_list = self._do_fetch_docs_list()
+        except Exception as e:
+            e.brive_explanation = \
+                'Unable to retrieve {}\'s docs list'.format(self.login)
+            raise
         self._documents = [Document(meta) for meta in docs_list['items']
                            if meta['id'] not in done]
+
+    def _do_fetch_docs_list(self, try_nb=1):
+        try:
+            client = self._client
+            client.authorize(self)
+            drive_service = client.build_service('drive', 'v2')
+            return drive_service.files().list().execute()
+        except:
+            if try_nb >= User._max_request_tries:
+                raise
+            return self._do_fetch_docs_list(try_nb + 1)
 
 
 class Document:
 
-    _name_from_header_regex = re.compile('^attachment;\s*filename="([^"]+)"')
-    _split_extension_regex = re.compile('(^.*)\.([^.]+)$')
+    _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
+    _split_extension_regex = re.compile(r'(^.*)\.([^.]+)$')
 
     # if a download fails, we'll re-try it that many times at most
     _max_download_tries = 3
@@ -168,8 +185,8 @@ class Document:
         except KeyError:
             # token expired
             raise ExpiredTokenException()
-        except Exception:
-            if try_nb < Document._max_download_tries:
+        except:
+            if try_nb >= Document._max_download_tries:
                 raise
             return self._download_from_url(client, url, try_nb + 1)
 
