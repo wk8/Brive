@@ -7,7 +7,6 @@ import tarfile
 import shutil
 from StringIO import StringIO
 
-from briveexception import *
 from brive import *
 
 
@@ -92,9 +91,9 @@ class TarBackend(BaseBackend):
         self._mkdir()
         format = config.get('backend_compression_format', not_null=True)
         if format not in ('gz', 'bz2'):
-            raise BriveException(
-                'The compression format must be either gz or bz2, ' +
-                '{} given'.format(format)
+            raise Exception(
+                'The compression format must be either gz or bz2, '
+                + '{} given'.format(format)
             )
         self._dir_name = BaseBackend._get_session_dir_name()
         self._tar_file_name = self._dir_name + '.tar.' + format

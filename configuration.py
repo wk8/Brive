@@ -3,7 +3,6 @@
 import yaml
 
 
-from briveexception import *
 from backend import *
 from brive import *
 
@@ -37,7 +36,7 @@ class Configuration:
                         return result[0].lower() in ('t', '1')
                     return result
                 if 'not_null' in kwargs and kwargs['not_null']:
-                    raise BriveException(
+                    raise Exception(
                         'Missing required configuration parameter: {}'
                         .format(name)
                     )
@@ -67,12 +66,7 @@ class Configuration:
                 self._data[prefix + key] = value
 
     def _load_from_yml(self, yml_file):
-        try:
-            stream = open(yml_file)
-            dictionary = yaml.load(stream)
-            self._add_dict(dictionary)
-            stream.close()
-        except IOError as io_error:
-            raise BriveException(io_error)
-        except YAMLError as yaml_error:
-            raise BriveException(yaml_error)
+        stream = open(yml_file)
+        dictionary = yaml.load(stream)
+        self._add_dict(dictionary)
+        stream.close()

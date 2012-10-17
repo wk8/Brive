@@ -46,11 +46,12 @@ def main():
         for user in client.users:
             user.save_documents(backend)
         backend.finalize()
-    except Exception as e:
+    except Exception as ex:
         if backend:
             backend.clean_up()
-        sys.stderr.write(str(e))
-        exit(1)
+        if hasattr(ex, 'brive_explanation'):
+            print '### {} ###'.format(ex.brive_explanation)
+        raise
 
 
 if __name__ == '__main__':

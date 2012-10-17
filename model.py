@@ -5,7 +5,6 @@ import re
 import urllib2
 from StringIO import StringIO
 
-from briveexception import *
 from client import *
 from brive import *
 
@@ -54,33 +53,35 @@ class User:
                 second_error = False
             except ExpiredTokenException:
                 if second_error:
-                    raise BriveException(
-                        'Two oauth errors in a row while processing' +
-                        '{}\'s documents '.format(self.login) +
-                        '(doc id: {}), '.format(document.id) +
-                        're-authentication failed'
+                    raise Exception(
+                        'Two oauth errors in a row while processing'
+                        + '{}\'s documents '.format(self.login)
+                        + '(doc id: {}), '.format(document.id)
+                        + 're-authentication failed'
                     )
                 else:
                     second_error = True
                     self._fetch_docs_list(done)
                     continue
             except Exception as ex:
-                raise BriveException(
-                    'Unexpected error when processing ' +
-                    '{}\'s documents '.format(self.login) +
-                    '(doc id: {}): {} '.format(document.id, str(ex))
-                )
+                explanation = \
+                    'Unexpected error when processing ' \
+                    + '{}\'s documents '.format(self.login) \
+                    + '(doc id: {})'.format(document.id)
+                ex.brive_explanation = explanation
+                raise
             try:
                 verbose('Saving {}\'s doc "{}" (id: {})'.format(
                     self.login, document.title, document.id
                 ))
                 backend.save(self, document)
             except Exception as ex:
-                raise BriveException(
-                    'Unexpected error when saving ' +
-                    '{}\'s documents '.format(self.login) +
-                    '(doc id: {}): {} '.format(document.id, str(ex))
-                )
+                explanation = \
+                    'Unexpected error when saving ' \
+                    + '{}\'s documents '.format(self.login) \
+                    + '(doc id: {})'.format(document.id)
+                ex.brive_explanation = explanation
+                raise
             # no need to keep the potentially big document's contents in memory
             document.del_contents()
             # mark as done
@@ -89,24 +90,21 @@ class User:
     # fetches the documents' list, except those whose ids are in 'done'
     def _fetch_docs_list(self, done=list()):
         debug('Fetching doc list for {}'.format(self.login))
-        try:
-            client = self._client
-            client.authorize(self)
-            drive_service = client.build_service('drive', 'v2')
-            docs_list = drive_service.files().list().execute()
-            self._documents = [Document(meta) for meta in docs_list['items']
-                               if meta['id'] not in done]
-        except Exception as ex:
-            raise BriveException(
-                'Unexpected error when retrieving documents\' list for user ' +
-                '{}: {}'.format(self, str(ex))
-            )
+        client = self._client
+        client.authorize(self)
+        drive_service = client.build_service('drive', 'v2')
+        docs_list = drive_service.files().list().execute()
+        self._documents = [Document(meta) for meta in docs_list['items']
+                           if meta['id'] not in done]
 
 
 class Document:
 
     _name_from_header_regex = re.compile('^attachment;\s*filename="([^"]+)"')
     _split_extension_regex = re.compile('(^.*)\.([^.]+)$')
+
+    # if a download fails, we'll re-try it that many times at most
+    _max_download_tries = 3
 
     def __init__(self, meta):
         self._meta = meta
@@ -140,23 +138,10 @@ class Document:
         if self._contents is None \
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
-            try:
-                # fetch from Google's API
-                self._contents = dict()
-                for url in self._get_download_urls():
-                    headers, content = client.request(url)
-                    self._check_download_integrity(headers, content)
-                    self._contents[self._get_file_name(headers)] = content
-            except KeyError:
-                # token expired
-                raise ExpiredTokenException()
-            except BriveException as brive_ex:
-                raise brive_ex
-            except Exception as ex:
-                raise BriveException(
-                    'Unexpected error while retrieving the contents of' +
-                    ' document id {}: {}'.format(self.id, str(ex))
-                )
+            self._contents = dict()
+            for url in self._get_download_urls():
+                file_name, content = self._download_from_url(client, url)
+                self._contents[file_name] = content
 
     def del_contents(self):
         self._contents = None
@@ -174,6 +159,19 @@ class Document:
         else:
             verbose('No download URL for document id {}'.format(self.id))
             return []
+
+    def _download_from_url(self, client, url, try_nb=1):
+        try:
+            headers, content = client.request(url)
+            self._check_download_integrity(headers, content)
+            return self._get_file_name(headers), content
+        except KeyError:
+            # token expired
+            raise ExpiredTokenException()
+        except Exception:
+            if try_nb < Document._max_download_tries:
+                raise
+            return self._download_from_url(client, url, try_nb + 1)
 
     def _check_download_integrity(self, headers, content):
         debug('Checking download integrity for doc id {}'.format(self.id))
@@ -197,7 +195,7 @@ class Document:
                     expected_sum, actual_sum
                 )
         if not success:
-            raise BriveException(
+            raise Exception(
                 'Failed to download document id {}: {}'.format(
                     self.id, message
                 )
@@ -210,7 +208,7 @@ class Document:
             content_disposition
         )
         if not results:
-            raise BriveException(
+            raise Exception(
                 'Unexpected "content_disposition" header: {}'.format(
                     content_disposition
                 )
