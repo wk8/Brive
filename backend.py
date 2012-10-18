@@ -7,7 +7,7 @@ import tarfile
 import shutil
 from StringIO import StringIO
 
-from brive import Log
+from utils import *
 
 
 # a helper class for actual backends

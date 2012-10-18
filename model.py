@@ -5,14 +5,10 @@ import re
 from StringIO import StringIO
 
 from client import ExpiredTokenException
-from brive import Log
-
+from utils import *
+from apiclient.errors import HttpError
 
 class User:
-
-    # if a request to get the docs' list fails
-    # we'll re-try it that many times at most
-    _max_request_tries = 3
 
     def __init__(self, login, client):
         # check that we have only the login, not the full email address
@@ -35,13 +31,21 @@ class User:
             self._fetch_docs_list()
         return self._documents
 
+    @property
+    def drive_service(self):
+        client = self._client
+        client.authorize(self)
+        return client.drive_service
+
     def save_documents(self, backend):
         Log.verbose(u'Processing docs for {}'.format(self.login))
         # list of processed ids
         done = list()
         # keep track of errors that happen twice in a row
         second_error = False
-        self._fetch_docs_list()
+        wk = lambda : self._fetch_docs_list(done)
+        wk()
+        # self._fetch_docs_list()
         while self._documents:
             document = self._documents.pop()
             Log.verbose(u'Processing {}\'s doc "{}" (id: {})'.format(
@@ -76,25 +80,29 @@ class User:
                     + u'(doc id: {})'.format(document.id)
                 ex.brive_explanation = explanation
                 raise
-            try:
-                Log.verbose(u'Saving {}\'s doc "{}" (id: {})'.format(
-                    self.login, document.title, document.id
-                ))
-                backend.save(self, document)
-            except Exception as ex:
-                explanation = \
-                    'Unexpected error when saving ' \
-                    + '{}\'s documents '.format(self.login) \
-                    + u'(doc id: {})'.format(document.id)
-                ex.brive_explanation = explanation
-                raise
-            # no need to keep the potentially big document's contents in memory
-            document.del_contents()
+            # now we can save it
+            self._save_single_document(backend, document)
             # mark as done
             done.append(document.id)
 
-    # fetches the documents' list, except those whose ids are in 'done'
-    def _fetch_docs_list(self, done=list()):
+    def retrieve_single_document(self, doc_id):
+        try:
+            self._do_retrieve_single_document(doc_id)
+        except Exception as e:
+            explanation = 'Error while retrieving single document id ' \
+                + u'{} for user {}, '.format(doc_id, self.login) \
+                + 'it\'s liklely this user isn\'t allowed to see that doc'
+            e.brive_explanation = explanation
+            raise
+        document.fetch_contents(self._client)
+        self._save_single_document(backend, document)
+
+    @Utils.multiple_tries_decorator(None)
+    def _do_retrieve_single_document(self, doc_id):
+        return self.drive_service.files().get(fileId=doc_id).execute()
+
+    # fetches the documents' list, except those whose ids are in 'exclude'
+    def _fetch_docs_list(self, exclude=list()):
         Log.debug('Fetching doc list for {}'.format(self.login))
         try:
             docs_list = self._do_fetch_docs_list()
@@ -103,30 +111,32 @@ class User:
                 u'Unable to retrieve {}\'s docs list'.format(self.login)
             raise
         self._documents = [Document(meta) for meta in docs_list['items']
-                           if meta['id'] not in done]
+                           if meta['id'] not in exclude]
 
-    def _do_fetch_docs_list(self, try_nb=1):
+    @Utils.multiple_tries_decorator(None)
+    def _do_fetch_docs_list(self):
+        return self.drive_service.files().list().execute()
+
+    def _save_single_document(self, backend, document):
         try:
-            return self.drive_service.files().list().execute()
-        except Exception:
-            if try_nb >= User._max_request_tries:
-                raise
-            return self._do_fetch_docs_list(try_nb + 1)
-
-    @property
-    def drive_service(self):
-        client = self._client
-        client.authorize(self)
-        return client.drive_service
-
+            Log.verbose(u'Saving {}\'s doc "{}" (id: {})'.format(
+                self.login, document.title, document.id
+            ))
+            backend.save(self, document)
+        except Exception as ex:
+            explanation = \
+                'Unexpected error when saving ' \
+                + '{}\'s documents '.format(self.login) \
+                + u'(doc id: {})'.format(document.id)
+            ex.brive_explanation = explanation
+            raise
+        # no need to keep the potentially big document's contents in memory
+        document.del_contents()
 
 class Document:
 
     _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
     _split_extension_regex = re.compile(r'\.([^.]+)$')
-
-    # if a download fails, we'll re-try it that many times at most
-    _max_download_tries = 3
 
     def __init__(self, meta):
         self._meta = meta
@@ -182,7 +192,8 @@ class Document:
             Log.verbose(u'No download URL for document id {}'.format(self.id))
             return []
 
-    def _download_from_url(self, client, url, try_nb=1):
+    @Utils.multiple_tries_decorator(ExpiredTokenException)
+    def _download_from_url(self, client, url):
         try:
             headers, content = client.request(url)
             self._check_download_integrity(headers, content)
@@ -190,10 +201,6 @@ class Document:
         except KeyError:
             # token expired
             raise ExpiredTokenException()
-        except Exception:
-            if try_nb >= Document._max_download_tries:
-                raise
-            return self._download_from_url(client, url, try_nb + 1)
 
     def _check_download_integrity(self, headers, content):
         Log.debug(u'Checking download integrity for doc id {}'.format(self.id))

@@ -12,7 +12,7 @@ from oauth2client.client import SignedJwtAssertionCredentials, AccessTokenRefres
 from apiclient.discovery import build
 
 from model import User
-from brive import Log
+from utils import *
 
 
 class Credentials:
@@ -58,9 +58,6 @@ class Credentials:
 
 
 class Client:
-
-    # if a request fails, we'll re-try it that many times at most
-    _max_request_tries = 3
 
     # FIXME: check extended scopes, and see that we fail,
     # otherwise issue a warning
@@ -125,27 +122,20 @@ class Client:
             oauth_error.brive_explanation = explanation
             raise
 
+    @Utils.multiple_tries_decorator(None)
     def request(self, *args, **kwargs):
-        try_nb = kwargs.pop('brive_try_nb', 1)
         check_status_code = kwargs.pop('brive_check_status', True)
-        try:
-            result = self._http.request(*args, **kwargs)
-            if check_status_code:
-                headers = result[0]
-                status = int(headers['status'])
-                if status != 200:
-                    raise Exception(
-                        u'Http request failed (return code: {})'.format(status)
-                    )
-            return result
-        except Exception:
-            if try_nb >= Client._max_request_tries:
-                raise
-            kwargs.update({
-                'brive_try_nb': try_nb + 1,
-                'brive_check_status': check_status_code
-            })
-            return self.request(*args, **kwargs)
+        result = self._http.request(*args, **kwargs)
+        if check_status_code:
+            headers = result[0]
+            status = int(headers['status'])
+            if status != 200:
+                raise Exception(
+                    u'Http request failed (return code: {}, headers: {} '
+                    .format(status, headers)
+                    + u'and content: {})'.format(result[1])
+                )
+        return result
 
     def _get_email_address(self, user):
         return '{}@{}'.format(user.login, self._domain)
