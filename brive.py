@@ -26,6 +26,11 @@ def main():
                         help='Custom doc ids to retrieve (in which case you'
                         ' must also give the login of exaclty one user owning'
                         ' those docs (using the -u flag))')
+    parser.add_argument('--keep-on-crash', dest='keep_on_crash',
+                        action='store_const', const=True, default=False,
+                        help='By default, we delete all the files if an error '
+                        'occurs. Use that flag to keep whatever files have '
+                        'been saved so far in the event of an error.')
     args = parser.parse_args()
 
     if args.docs and len(args.users) != 1:
@@ -54,10 +59,13 @@ def main():
             for user in users:
                 user.save_documents(backend)
         backend.finalize()
-    except Exception as ex:
+    except BaseException as ex:
         if backend:
             try:
-                backend.clean_up()
+                if args.keep_on_crash:
+                    backend.finalize()
+                else:
+                    backend.clean_up()
             except:
                 pass
         if hasattr(ex, 'brive_explanation'):
