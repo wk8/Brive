@@ -84,39 +84,40 @@ class SimpleBackend(BaseBackend):
 
 
 # also downloads everything, but compresses it
-class TarBackend(BaseBackend):
+class TarBackend(SimpleBackend):
 
     def __init__(self, config):
         super(TarBackend, self).__init__(config)
-        self._mkdir()
-        cformat = config.get('backend_compression_format', not_null=True)
-        if cformat not in ('gz', 'bz2'):
+        # get the compression format
+        self._format = config.get('backend_compression_format', not_null=True)
+        if self._format not in ('gz', 'bz2'):
             raise Exception(
                 'The compression format must be either gz or bz2, '
                 + u'{} given'.format(format)
             )
-        self._dir_name = BaseBackend._get_session_dir_name()
-        self._tar_file_name = self._dir_name + '.tar.' + cformat
-        self._tarfile = tarfile.open(
-            self._root_dir + self._tar_file_name, 'w:' + cformat
-        )
+        self._tar_files = dict()
         Log.debug('TarBackend loaded')
 
     def save(self, user, document):
+        # create the tarfile if we don't have one for this user yet
+        if user.login not in self._tar_files:
+            name = self._root_dir + user.login + '.tar.' + self._format
+            self._tar_files[user.login] = tarfile.open(
+                name, 'w:' + self._format
+            )
+        tar_file = self._tar_files[user.login]
         for file_name, content in document.contents.items():
-            path = self._dir_name + os.sep + user.login + os.sep + file_name
+            path = user.login + os.sep + file_name
             Log.debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))
             file_object = StringIO(content)
             tarnfo = tarfile.TarInfo(path)
             tarnfo.size = file_object.len
-            self._tarfile.addfile(tarnfo, file_object)
+            tar_file.addfile(tarnfo, file_object)
 
     def finalize(self):
-        self._tarfile.close()
+        Log.debug('Closing tar files')
+        for tar_file in self._tar_files.values():
+            tar_file.close()
 
-    def clean_up(self):
-        Log.verbose(u'Unexpected shutdown, deleting {} file'
-                    .format(self._tar_file_name))
-        os.remove(self._root_dir + self._tar_file_name)
