@@ -19,10 +19,19 @@ def main():
     parser.add_argument('-d', dest='debug', action='store_const',
                         const=True, default=False, help='Debug mode')
     parser.add_argument('-u', dest='users', metavar='login',
-                        type=str, nargs='+', default=None,
+                        type=str, nargs='+', default=[],
                         help='Custom logins instead of all of them')
+    parser.add_argument('--docs', dest='docs', metavar='doc_id',
+                        type=str, nargs='+', default=None,
+                        help='Custom doc ids to retrieve (in which case you'
+                        ' must also give the login of exaclty one user owning'
+                        ' those docs (using the -u flag))')
     args = parser.parse_args()
-    
+
+    if args.docs and len(args.users) != 1:
+        sys.stderr.write('Incorrect input, use -h for more help\n')
+        exit(1)
+
     # load the logger functions
     Log.init(args.verbose, args.debug)
 
@@ -32,17 +41,18 @@ def main():
         configuration = Configuration(SettingsFiles.SETTINGS_FILE,
                                       SettingsFiles.CONSTANTS_FILE)
         client = Client(configuration)
-        ids = ['1ymj9aSlqwerrpwlUJJGFQ7Qb7KIVxBsUBjvlsFE-kpI', '0B-JE-EChYkpMMkRacEs0Wk56Wjg'] # belongs to wk
-        u = User('po', client)
-        id = ids[1]
-        # x = u._do_retrieve_single_document(id)
-        # print x
-        # exit(1)
         backend = configuration.get_backend()
         users = [User(login, client) for login in args.users] if args.users \
             else client.users
-        for user in users:
-            user.save_documents(backend)
+        if args.docs:
+            # sepecific doc_ids, only one user
+            user = users[0]
+            for doc_id in args.docs:
+                user.retrieve_single_document(backend, doc_id)
+        else:
+            # general use case
+            for user in users:
+                user.save_documents(backend)
         backend.finalize()
     except Exception as ex:
         if backend:

@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 
 import time
+
 
 class SettingsFiles:
 
@@ -18,6 +20,7 @@ class Utils:
             blacklist = []
         elif type(blacklist) is not list:
             blacklist = [blacklist]
+
         def internal_decorator(function):
             def result(*args, **kwargs):
                 return Utils._multiple_tries_rec(
@@ -45,6 +48,7 @@ class Utils:
                 function, blacklist, try_nb + 1, *args, **kwargs
             )
 
+
 class Log:
 
     @staticmethod
@@ -58,6 +62,7 @@ class Log:
             timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
             for arg in args:
                 print u'[ {} ] '.format(timestamp) + arg
+
         @staticmethod
         def void(*args):
             pass

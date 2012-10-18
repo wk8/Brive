@@ -8,6 +8,7 @@ from client import ExpiredTokenException
 from utils import *
 from apiclient.errors import HttpError
 
+
 class User:
 
     def __init__(self, login, client):
@@ -43,9 +44,7 @@ class User:
         done = list()
         # keep track of errors that happen twice in a row
         second_error = False
-        wk = lambda : self._fetch_docs_list(done)
-        wk()
-        # self._fetch_docs_list()
+        self._fetch_docs_list()
         while self._documents:
             document = self._documents.pop()
             Log.verbose(u'Processing {}\'s doc "{}" (id: {})'.format(
@@ -85,9 +84,10 @@ class User:
             # mark as done
             done.append(document.id)
 
-    def retrieve_single_document(self, doc_id):
+    def retrieve_single_document(self, backend, doc_id):
         try:
-            self._do_retrieve_single_document(doc_id)
+            meta = self._do_retrieve_single_document(doc_id)
+            document = Document(meta)
         except Exception as e:
             explanation = 'Error while retrieving single document id ' \
                 + u'{} for user {}, '.format(doc_id, self.login) \
@@ -132,6 +132,7 @@ class User:
             raise
         # no need to keep the potentially big document's contents in memory
         document.del_contents()
+
 
 class Document:
 
