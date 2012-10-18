@@ -120,4 +120,3 @@ class TarBackend(SimpleBackend):
         Log.debug('Closing tar files')
         for tar_file in self._tar_files.values():
             tar_file.close()
-
