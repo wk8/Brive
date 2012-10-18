@@ -8,16 +8,18 @@ import shutil
 from StringIO import StringIO
 
 from utils import *
+import configuration
 
 
 # a helper class for actual backends
 class BaseBackend(object):
 
-    def __init__(self, config=None):
-        if config:
-            self._root_dir = config.get('backend_root_dir', not_null=True)
-            # add a trailing slash to root_dir if there isn't any
-            self._root_dir += '' if self._root_dir[-1] == os.sep else os.sep
+    def __init__(self):
+        self._root_dir = configuration.Configuration.get(
+            'backend_root_dir', not_null=True
+        )
+        # add a trailing slash to root_dir if there isn't any
+        self._root_dir += '' if self._root_dir[-1] == os.sep else os.sep
 
     # can be overriden for more elaborate backends
     def need_to_fetch_contents(self, user, document):
@@ -57,8 +59,8 @@ class DummyBackend(BaseBackend):
 # simplest backend possible: just download everything
 class SimpleBackend(BaseBackend):
 
-    def __init__(self, config):
-        super(SimpleBackend, self).__init__(config)
+    def __init__(self):
+        super(SimpleBackend, self).__init__()
         # create the root directory for this session
         dir_name = BaseBackend._get_session_dir_name()
         self._mkdir(dir_name)
@@ -86,10 +88,12 @@ class SimpleBackend(BaseBackend):
 # also downloads everything, but compresses it
 class TarBackend(SimpleBackend):
 
-    def __init__(self, config):
-        super(TarBackend, self).__init__(config)
+    def __init__(self):
+        super(TarBackend, self).__init__()
         # get the compression format
-        self._format = config.get('backend_compression_format', not_null=True)
+        self._format = configuration.Configuration.get(
+            'backend_compression_format', not_null=True
+        )
         if self._format not in ('gz', 'bz2'):
             raise Exception(
                 'The compression format must be either gz or bz2, '

@@ -8,10 +8,13 @@ from backend import *
 
 class Configuration:
 
+    instance = None
+
     def __init__(self, settings_file, constants_file):
         self._data = dict()
         self._load_from_yml(constants_file)
         self._load_from_yml(settings_file)
+        Configuration.instance = self
         Log.debug('Configuration loaded')
 
     def __str__(self):
@@ -21,14 +24,16 @@ class Configuration:
     # the only possible named parameter is not_null which will make this method
     # raise an exception if the parameter is not found
     # is_int or is_bool can be used to cast the result to the desired type
-    def get(self, *args, **kwargs):
+    @classmethod
+    def get(cls, *args, **kwargs):
+        instance = Configuration.instance
         if not args:
             return None
         if len(args) == 1:
             name = args[0]
             if type(name) is str:
-                if name in self._data:
-                    result = self._data[name]
+                if name in instance._data:
+                    result = instance._data[name]
                     if 'is_int' in kwargs and kwargs['is_int']:
                         return int(result)
                     if 'is_bool' in kwargs and kwargs['is_bool']:
@@ -44,7 +49,29 @@ class Configuration:
                 u'Invalid argument for Configuration.get: {}'
                 .format(repr(name))
             )
-        return [self.get(name, **kwargs) for name in args]
+        return [instance.get(name, **kwargs) for name in args]
+
+    @classmethod
+    def set(self, name, value):
+        Configuration.instance._data[name] = value
+
+    # used for list and dict values, to update while keeping old entries
+    @classmethod
+    def merge(self, name, value):
+        instance = Configuration.instance
+        if name in instance._data:
+            current = instance._data
+            if type(value) is list and type(current) is list:
+                instance.set(name, new_list + list(set(current) - set(value)))
+            elif type(value) is dict and type(current) is dict:
+                instance.set(name, current.update(value))
+            else:
+                raise Exception(
+                    'Unexpected type in Configuration: {}'.format(type(value))
+                    + 'while previous type was: {}'.format(type(current))
+                )
+        else:
+            instance.set(name, value)
 
     # returns the right backend depending on the configuration
     def get_backend(self):
@@ -54,7 +81,7 @@ class Configuration:
                 'factories_simple_backend', not_null=True
             )
         class_object = eval(class_name)
-        return class_object(self)
+        return class_object()
 
     def _add_dict(self, dictionary, prefix=''):
         if prefix:

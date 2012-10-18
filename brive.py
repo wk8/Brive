@@ -30,7 +30,16 @@ def main():
                         action='store_const', const=True, default=False,
                         help='By default, we delete all the files if an error '
                         'occurs. Use that flag to keep whatever files have '
-                        'been saved so far in the event of an error.')
+                        'been saved so far in the event of an error')
+    parser.add_argument('--preferred-formats', dest='preferred_formats',
+                        metavar='extension', type=str, nargs='+', default=[],
+                        help='When several formats are available, if one (or '
+                        'more) of them is in this list, only this (or those)'
+                        'format(s) will be downloaded')
+    parser.add_argument('--exclusive-formats', dest='exclusive_formats',
+                        metavar='extension', type=str, nargs='+', default=[],
+                        help='Only files matching those formats will '
+                        'get downloaded')
     args = parser.parse_args()
 
     if args.docs and len(args.users) != 1:
@@ -40,12 +49,15 @@ def main():
     # load the logger functions
     Log.init(args.verbose, args.debug)
 
-    # down to business
     backend = None
     try:
+        # build the config
         configuration = Configuration(SettingsFiles.SETTINGS_FILE,
                                       SettingsFiles.CONSTANTS_FILE)
-        client = Client(configuration)
+        configuration.merge('formats_preferred', args.preferred_formats)
+        configuration.merge('formats_exclusive', args.exclusive_formats)
+        # down to business
+        client = Client()
         backend = configuration.get_backend()
         users = [User(login, client) for login in args.users] if args.users \
             else client.users
