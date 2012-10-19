@@ -5,7 +5,7 @@ import re
 from StringIO import StringIO
 import mimetypes
 
-from client import ExpiredTokenException
+from client import ExpiredTokenException, FailedRequestException
 from utils import *
 from apiclient.errors import HttpError
 from configuration import Configuration
@@ -171,17 +171,30 @@ class Document:
     # sets contents to be a dict mapping file names to contents
     # force_refresh = True forces to re-fetch the contents even if we have
     # already done so
-    def fetch_contents(self, client, **kwargs):
-        Log.debug(u'Fetching contents for doc id {}'.format(self.id))
+    def fetch_contents(self, client, second_try=False,
+                       banned_urls=list(), **kwargs):
         if self._contents is None \
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
+            debug_msg = u'Fetching contents for doc id {}'.format(self.id)
+            if second_try:
+                debug_msg += ', this time ignoring extension preferences'
+            Log.debug(debug_msg)
             self._contents = dict()
-            urls = self._get_download_urls()
+            urls = self._get_download_urls(second_try, banned_urls)
             for url in urls:
-                Log.verbose(u'Starting download from {}...'.format(url))
-                file_name, content = self._download_from_url(client, url)
-                self._contents[file_name] = content
+                try:
+                    Log.verbose(u'Starting download from {}...'.format(url))
+                    file_name, content = self._download_from_url(client, url)
+                    self._contents[file_name] = content
+                except FailedRequestException:
+                    Log.error(u'Download from {} for document {} failed'
+                              .format(url, self.id))
+                    banned_urls.append(url)
+            if not second_try and not self._contents:
+                # we've failed to retrieve any contents, we try again ignoring
+                # format preferences
+                self.fetch_contents(client, True, banned_urls, **kwargs)
 
     def del_contents(self):
         self._contents = None
@@ -191,12 +204,13 @@ class Document:
             return self._meta[key]
         return default
 
-    def _get_download_urls(self):
+    def _get_download_urls(self, ignore_preferred=False, banned_urls=list()):
         if 'downloadUrl' in self._meta:
             # filter if exclusive formats are set
             if Document._is_an_exclusive_format(self.get_meta('mimeType')):
-                return [self._meta['downloadUrl']]
+                result = [self._meta['downloadUrl']]
         elif 'exportLinks' in self._meta:
+            # no direct download link
             urls = self._meta['exportLinks'].values()
             result = dict()
             # filter exclusive and preferred formats
@@ -207,6 +221,9 @@ class Document:
                 # get the extension from the url
                 extension_matches = Document._extension_from_url.findall(url)
                 if not extension_matches:
+                    # shouldn't happen as far as I can tell
+                    Log.error(u'No extension found in url: {} '.format(url)
+                              + u'for document id {}'.format(self.id))
                     continue
                 extension = '.' + extension_matches[0]
                 Log.debug(
@@ -216,7 +233,7 @@ class Document:
                 )
                 if exclusive and not extension in exclusive:
                     continue
-                if preferred and extension in preferred:
+                if not ignore_preferred and extension in preferred:
                     one_preferred_found = True
                 result[url] = extension
             if one_preferred_found:
@@ -224,8 +241,12 @@ class Document:
                           if result[url] in preferred]
             else:
                 result = result.keys()
-            if result:
-                return result
+        # filter banned URLs
+        if banned_urls:
+            result = [url for url in result if url not in banned_urls]
+        # and finally, return if anything is left!
+        if result:
+            return result
         Log.verbose(
             u'No suitable download URL for document id {}'.format(self.id)
         )

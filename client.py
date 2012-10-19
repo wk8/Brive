@@ -4,6 +4,10 @@
 class ExpiredTokenException(Exception):
     pass
 
+
+class FailedRequestException(Exception):
+    pass
+
 import feedparser
 
 from httplib2 import Http
@@ -132,7 +136,7 @@ class Client:
             headers = result[0]
             status = int(headers['status'])
             if status != 200:
-                raise Exception(
+                raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
                     .format(status, headers)
                     + u'and content: {})'.format(result[1])

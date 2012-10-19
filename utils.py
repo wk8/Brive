@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+import sys
 
 
 class SettingsFiles:
@@ -52,16 +53,19 @@ class Utils:
 class Log:
 
     @staticmethod
-    def verbose(*args):
-        pass
+    def error(*args):
+        sys.stderr.write(Log._timestamped_string(*args))
+
+    @staticmethod
+    def _timestamped_string(*args):
+        timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
+        return u'[ {} ] '.format(timestamp) + args[0]
 
     @staticmethod
     def init(verbose, debug):
         @staticmethod
         def pprint(*args):
-            timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
-            for arg in args:
-                print u'[ {} ] '.format(timestamp) + arg
+            print Log._timestamped_string(*args)
 
         @staticmethod
         def void(*args):

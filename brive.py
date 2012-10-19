@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys
 import argparse
 
 from configuration import *
@@ -44,12 +43,12 @@ def main():
                         'Python\'s mimetypes package)')
     args = parser.parse_args()
 
-    if args.docs and len(args.users) != 1:
-        sys.stderr.write('Incorrect input, use -h for more help\n')
-        exit(1)
-
     # load the logger functions
     Log.init(args.verbose, args.debug)
+
+    if args.docs and len(args.users) != 1:
+        Log.error('Incorrect input, use -h for more help\n')
+        exit(1)
 
     backend = None
     try:
