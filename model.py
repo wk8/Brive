@@ -197,6 +197,7 @@ class Document:
             self._do_fetch_contents(client, True, banned_urls)
 
     def del_contents(self):
+        del self._contents
         self._contents = None
 
     def get_meta(self, key, default=None):
