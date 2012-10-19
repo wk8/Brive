@@ -179,6 +179,7 @@ class Document:
             self._contents = dict()
             urls = self._get_download_urls()
             for url in urls:
+                Log.verbose(u'Starting download from {}...'.format(url))
                 file_name, content = self._download_from_url(client, url)
                 self._contents[file_name] = content
 
