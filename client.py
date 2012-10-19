@@ -139,7 +139,7 @@ class Client:
                 raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
                     .format(status, headers)
-                    + u'and content: {})'.format(result[1])
+                    + u'and content: {})'.format(result[1].decode('utf8'))
                 )
         return result
 
