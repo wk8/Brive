@@ -191,10 +191,14 @@ class Document:
                 Log.error(u'Download from {} for document {} failed'
                           .format(url, self.id))
                 banned_urls.append(url)
-        if not second_try and not self._contents:
-            # we've failed to retrieve any contents, we try again , this time
-            # ignoring format preferences
-            self._do_fetch_contents(client, True, banned_urls)
+        if not self._contents:
+            if second_try:
+                Log.error('Couldn\'t retrieve any version of document id '
+                          + u'{} (title: {})'.format(self.id, self.title))
+            else:
+                # we've failed to retrieve any contents, we try again,
+                # this time ignoring format preferences
+                self._do_fetch_contents(client, True, banned_urls)
 
     def del_contents(self):
         del self._contents
