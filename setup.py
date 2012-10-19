@@ -21,6 +21,7 @@ setup(
         "feedparser",
         "google-api-python-client",
         "pyOpenSSL",
+        "python-dateutil",
     ],
 
     dependency_links = [
