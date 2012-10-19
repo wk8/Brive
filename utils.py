@@ -54,12 +54,13 @@ class Log:
 
     @staticmethod
     def error(*args):
-        sys.stderr.write(Log._timestamped_string(*args))
+        sys.stderr.write(Log._timestamped_string(*args, new_line=True))
 
     @staticmethod
-    def _timestamped_string(*args):
+    def _timestamped_string(*args, **kwargs):
         timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
-        return u'[ {} ] '.format(timestamp) + args[0]
+        return u'[ {} ] '.format(timestamp) + args[0] \
+            + ('\n' if kwargs.get('new_line', False) else '')
 
     @staticmethod
     def init(verbose, debug):

@@ -47,7 +47,7 @@ def main():
     Log.init(args.verbose, args.debug)
 
     if args.docs and len(args.users) != 1:
-        Log.error('Incorrect input, use -h for more help\n')
+        Log.error('Incorrect input, use -h for more help')
         exit(1)
 
     backend = None

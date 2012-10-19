@@ -210,6 +210,7 @@ class Document:
         return default
 
     def _get_download_urls(self, ignore_preferred=False, banned_urls=list()):
+        result = []
         if 'downloadUrl' in self._meta:
             # filter if exclusive formats are set
             if Document._is_an_exclusive_format(self.get_meta('mimeType')):
@@ -217,7 +218,7 @@ class Document:
         elif 'exportLinks' in self._meta:
             # no direct download link
             urls = self._meta['exportLinks'].values()
-            result = dict()
+            url_to_ext = dict()
             # filter exclusive and preferred formats
             exclusive = Configuration.get('formats_exclusive')
             preferred = Configuration.get('formats_preferred')
@@ -237,25 +238,26 @@ class Document:
                     )
                 )
                 if exclusive and not extension in exclusive:
+                    Log.debug(u'Ignoring extension {} not '.format(extension)
+                              + u'not in exclusive: {}'.format(exclusive))
                     continue
                 if not ignore_preferred and extension in preferred:
                     one_preferred_found = True
-                result[url] = extension
+                url_to_ext[url] = extension
             if one_preferred_found:
-                result = [url for url in result.keys()
-                          if result[url] in preferred]
+                result = [url for url in url_to_ext.keys()
+                          if url_to_ext[url] in preferred]
             else:
-                result = result.keys()
+                result = url_to_ext.keys()
         # filter banned URLs
         if banned_urls:
             result = [url for url in result if url not in banned_urls]
         # and finally, return if anything is left!
-        if result:
-            return result
-        Log.verbose(
-            u'No suitable download URL for document id {}'.format(self.id)
-        )
-        return []
+        if not result:
+            Log.verbose(
+                u'No suitable download URL for document id {}'.format(self.id)
+            )
+        return result
 
     @staticmethod
     def _is_an_exclusive_format(mimeType):
