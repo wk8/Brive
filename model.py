@@ -171,30 +171,30 @@ class Document:
     # sets contents to be a dict mapping file names to contents
     # force_refresh = True forces to re-fetch the contents even if we have
     # already done so
-    def fetch_contents(self, client, second_try=False,
-                       banned_urls=list(), **kwargs):
-        if self._contents is None \
-            or 'force_refresh' in kwargs \
-                and kwargs['force_refresh']:
-            debug_msg = u'Fetching contents for doc id {}'.format(self.id)
-            if second_try:
-                debug_msg += ', this time ignoring extension preferences'
-            Log.debug(debug_msg)
-            self._contents = dict()
-            urls = self._get_download_urls(second_try, banned_urls)
-            for url in urls:
-                try:
-                    Log.verbose(u'Starting download from {}...'.format(url))
-                    file_name, content = self._download_from_url(client, url)
-                    self._contents[file_name] = content
-                except FailedRequestException:
-                    Log.error(u'Download from {} for document {} failed'
-                              .format(url, self.id))
-                    banned_urls.append(url)
-            if not second_try and not self._contents:
-                # we've failed to retrieve any contents, we try again ignoring
-                # format preferences
-                self.fetch_contents(client, True, banned_urls, **kwargs)
+    def fetch_contents(self, client, force_refresh=False):
+        if self._contents is None or force_refresh:
+            self._do_fetch_contents(client)
+
+    def _do_fetch_contents(self, client, second_try=False, banned_urls=list()):
+        debug_msg = u'Fetching contents for doc id {}'.format(self.id)
+        if second_try:
+            debug_msg += ', this time ignoring extension preferences'
+        Log.debug(debug_msg)
+        self._contents = dict()
+        urls = self._get_download_urls(second_try, banned_urls)
+        for url in urls:
+            try:
+                Log.verbose(u'Starting download from {}'.format(url))
+                file_name, content = self._download_from_url(client, url)
+                self._contents[file_name] = content
+            except FailedRequestException:
+                Log.error(u'Download from {} for document {} failed'
+                          .format(url, self.id))
+                banned_urls.append(url)
+        if not second_try and not self._contents:
+            # we've failed to retrieve any contents, we try again , this time
+            # ignoring format preferences
+            self._do_fetch_contents(client, True, banned_urls)
 
     def del_contents(self):
         self._contents = None
