@@ -209,7 +209,9 @@ class Document:
                     continue
                 extension = '.' + extension_matches[0]
                 Log.debug(
-                    u'Found extension {} for document id'.format(self.id)
+                    u'Found extension {} for document id'.format(
+                        extension, self.id
+                    )
                 )
                 if exclusive and not extension in exclusive:
                     continue
