@@ -208,6 +208,9 @@ class Document:
                 if not extension_matches:
                     continue
                 extension = '.' + extension_matches[0]
+                Log.debug(
+                    u'Found extension {} for document id'.format(self.id)
+                )
                 if exclusive and not extension in exclusive:
                     continue
                 if preferred and extension in preferred:
