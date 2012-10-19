@@ -209,7 +209,7 @@ class Document:
                     continue
                 extension = '.' + extension_matches[0]
                 Log.debug(
-                    u'Found extension {} for document id'.format(
+                    u'Found extension {} for document id {}'.format(
                         extension, self.id
                     )
                 )
