@@ -3,10 +3,12 @@
 import md5
 import re
 from StringIO import StringIO
+import mimetypes
 
 from client import ExpiredTokenException
 from utils import *
 from apiclient.errors import HttpError
+from configuration import Configuration
 
 
 class User:
@@ -138,6 +140,9 @@ class Document:
 
     _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
     _split_extension_regex = re.compile(r'\.([^.]+)$')
+    _extension_from_url = re.compile(r'exportFormat=([^&]+)$')
+
+    _exclusive_formats = dict()
 
     def __init__(self, meta):
         self._meta = meta
@@ -172,7 +177,8 @@ class Document:
             or 'force_refresh' in kwargs \
                 and kwargs['force_refresh']:
             self._contents = dict()
-            for url in self._get_download_urls():
+            urls = self._get_download_urls()
+            for url in urls:
                 file_name, content = self._download_from_url(client, url)
                 self._contents[file_name] = content
 
@@ -186,12 +192,49 @@ class Document:
 
     def _get_download_urls(self):
         if 'downloadUrl' in self._meta:
-            return [self._meta['downloadUrl']]
+            # filter if exclusive formats are set
+            if Document._is_an_exclusive_format(self.get_meta('mimeType')):
+                return [self._meta['downloadUrl']]
         elif 'exportLinks' in self._meta:
-            return self._meta['exportLinks'].values()
-        else:
-            Log.verbose(u'No download URL for document id {}'.format(self.id))
-            return []
+            urls = self._meta['exportLinks'].values()
+            result = dict()
+            # filter exclusive and preferred formats
+            exclusive = Configuration.get('formats_exclusive')
+            preferred = Configuration.get('formats_preferred')
+            one_preferred_found = False
+            for url in urls:
+                # get the extension from the url
+                extension_matches = Document._extension_from_url.findall(url)
+                if not extension_matches:
+                    continue
+                extension = '.' + extension_matches[0]
+                if exclusive and not extension in exclusive:
+                    continue
+                if preferred and extension in preferred:
+                    one_preferred_found = True
+                result[url] = extension
+            if one_preferred_found:
+                result = [url for url in result.keys()
+                          if result[url] in preferred]
+            else:
+                result = result.keys()
+            if result:
+                return result
+        Log.verbose(
+            u'No suitable download URL for document id {}'.format(self.id)
+        )
+        return []
+
+    @staticmethod
+    def _is_an_exclusive_format(mimeType):
+        exclusive = Configuration.get('formats_exclusive')
+        if not exclusive:
+            return True
+        if format not in Document._exclusive_formats:
+            possible_exts = set(mimetypes.guess_all_extensions(mimeType))
+            result = bool(possible_exts.intersection(exclusive))
+            Document._exclusive_formats[format] = result
+        return Document._exclusive_formats[format]
 
     @Utils.multiple_tries_decorator(ExpiredTokenException)
     def _download_from_url(self, client, url):

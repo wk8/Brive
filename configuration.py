@@ -62,16 +62,18 @@ class Configuration:
         if name in instance._data:
             current = instance._data
             if type(value) is list and type(current) is list:
-                instance.set(name, new_list + list(set(current) - set(value)))
+                Configuration.set(
+                    name, new_list + list(set(current) - set(value))
+                )
             elif type(value) is dict and type(current) is dict:
-                instance.set(name, current.update(value))
+                Configuration.set(name, current.update(value))
             else:
                 raise Exception(
                     'Unexpected type in Configuration: {}'.format(type(value))
                     + 'while previous type was: {}'.format(type(current))
                 )
         else:
-            instance.set(name, value)
+            Configuration.set(name, value)
 
     # returns the right backend depending on the configuration
     def get_backend(self):

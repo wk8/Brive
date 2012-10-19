@@ -56,6 +56,14 @@ def main():
                                       SettingsFiles.CONSTANTS_FILE)
         configuration.merge('formats_preferred', args.preferred_formats)
         configuration.merge('formats_exclusive', args.exclusive_formats)
+        # check all the formats begin with a leading dot
+        preferred_formats = [fmt if fmt[0] == '.' else '.' + fmt
+                             for fmt in Configuration.get('formats_preferred')]
+        exclusive_formats = [fmt if fmt[0] == '.' else '.' + fmt
+                             for fmt in Configuration.get('formats_exclusive')]
+        Configuration.set('formats_preferred', preferred_formats)
+        Configuration.set('formats_exclusive', exclusive_formats)
+
         # down to business
         client = Client()
         backend = configuration.get_backend()
