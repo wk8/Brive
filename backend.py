@@ -118,6 +118,7 @@ class TarBackend(SimpleBackend):
             file_object = StringIO(content)
             tarnfo = tarfile.TarInfo(path)
             tarnfo.size = file_object.len
+            tarnfo.mtime = document.modified_timestamp
             tar_file.addfile(tarnfo, file_object)
 
     def finalize(self):

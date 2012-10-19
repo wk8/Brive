@@ -4,6 +4,8 @@ import md5
 import re
 from StringIO import StringIO
 import mimetypes
+import dateutil.parser
+import time
 
 from client import ExpiredTokenException, FailedRequestException
 from utils import *
@@ -167,6 +169,11 @@ class Document:
     @property
     def title(self):
         return self.get_meta('title')
+
+    @property
+    def modified_timestamp(self):
+        datetime_object = dateutil.parser.parse(self.get_meta('modifiedDate'))
+        return int(time.mktime(datetime_object.timetuple()))
 
     # sets contents to be a dict mapping file names to contents
     # force_refresh = True forces to re-fetch the contents even if we have
