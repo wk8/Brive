@@ -237,7 +237,9 @@ class Document:
         if not exclusive:
             return True
         if format not in Document._exclusive_formats:
-            possible_exts = set(mimetypes.guess_all_extensions(mimeType))
+            possible_exts = set(
+                mimetypes.guess_all_extensions(mimeType, strict=False)
+            )
             result = bool(possible_exts.intersection(exclusive))
             Document._exclusive_formats[format] = result
         return Document._exclusive_formats[format]

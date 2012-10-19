@@ -39,7 +39,9 @@ def main():
     parser.add_argument('--exclusive-formats', dest='exclusive_formats',
                         metavar='extension', type=str, nargs='+', default=[],
                         help='Only files matching those formats will '
-                        'get downloaded')
+                        'get downloaded (note that some other related '
+                        'formats may be downloaded as well as this is based on'
+                        'Python\'s mimetypes package)')
     args = parser.parse_args()
 
     if args.docs and len(args.users) != 1:
