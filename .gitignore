@@ -3,3 +3,7 @@
 # private settings files
 settings.yml
 *.p12
+
+build/
+Brive.egg-info
+dist
