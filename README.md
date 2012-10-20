@@ -5,6 +5,8 @@ Brive allows you to backup all the Google Drive documents accessible by all your
 
 Each time it is run, it creates a full snapshot of your users' Drive accounts' contents.
 
+You can also use it to retrieve only the docs of some specific users, and/or to retrieve only some specific documents. Additionally, you can choose the formats you prefer to have your documents exported in.
+
 <h1>Installation</h1>
 
 <h2>Local installation</h2>
@@ -53,7 +55,7 @@ Now we need to grant the necessary access rights to this application on your dom
 
 <h1>How to use</h1>
 
-When in your Brive directory, just execute the `brive.py` file. Additionally, you can pass it a `-v` flag to run it in verbose mode, or `-d` to run it in Log.debug mode (more output).
+When in your Brive directory, just execute the `brive.py` file. See all the possible flags by running `brive.py --help`.
 
 The exit code will be 0 if and only if the backup was successful. If it wasn't, you should get an explanatory message in your `stderr` stream.
 

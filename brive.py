@@ -34,20 +34,20 @@ def main():
                         metavar='extension', type=str, nargs='+', default=[],
                         help='When several formats are available, if one (or '
                         'more) of them is in this list, only this (or those)'
-                        'format(s) will be downloaded')
+                        ' format(s) will be downloaded')
     parser.add_argument('--exclusive-formats', dest='exclusive_formats',
                         metavar='extension', type=str, nargs='+', default=[],
                         help='Only files matching those formats will '
                         'get downloaded (note that some other related '
                         'formats may be downloaded as well as this is based on'
-                        'Python\'s mimetypes package)')
+                        ' Python\'s mimetypes package)')
     args = parser.parse_args()
 
     # load the logger functions
     Log.init(args.verbose, args.debug)
 
     if args.docs and len(args.users) != 1:
-        Log.error('Incorrect input, use -h for more help')
+        Log.error('Incorrect input, aborting. Please use -h for more help')
         exit(1)
 
     backend = None
