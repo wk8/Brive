@@ -12,7 +12,7 @@ setup(
     author = "Jean Rouge",
     author_email = "jer329@cornell.edu",
     description = "Brive, the Google Apps Domains' Drive Backup application",
-    license = "MIT",
+    license = "UNLICENSED (cf http://unlicense.org/)",
     keywords = "google drive backup domain",
     url = "https://github.com/x8wk/Brive",
 
