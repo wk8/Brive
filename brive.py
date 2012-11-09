@@ -84,6 +84,10 @@ def main():
         if backend:
             try:
                 if args.keep_on_crash:
+                    Log.verbose(
+                        'Unexpected shutdown, trying to finalize backend...'
+                        + ' (you selected --keep-on-crash)'
+                    )
                     backend.finalize()
                 else:
                     backend.clean_up()

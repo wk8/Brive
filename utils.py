@@ -2,6 +2,7 @@
 
 import time
 import sys
+import traceback
 
 
 class SettingsFiles:
@@ -53,14 +54,27 @@ class Utils:
 class Log:
 
     @staticmethod
-    def error(*args):
-        sys.stderr.write(Log._timestamped_string(*args, new_line=True))
+    def error(*args, **kwargs):
+        ttstr_kwargs = {'new_line':True, 'with_BT':True}
+        ttstr_kwargs.update(kwargs)
+        sys.stderr.write(Log._timestamped_string(*args, **ttstr_kwargs))
 
     @staticmethod
     def _timestamped_string(*args, **kwargs):
         timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
-        return u'[ {} ] '.format(timestamp) + args[0] \
-            + ('\n' if kwargs.get('new_line', False) else '')
+        try:
+            message = args[0].encode('ascii', 'replace')
+            if kwargs.get('with_BT', False):
+                message += ' (Traceback (most recent call last): ' \
+                    + str(traceback.extract_stack()) + ' )'
+            return u'[ {} ] '.format(timestamp) + message \
+                + ('\n' if kwargs.get('new_line', False) else '')
+        except Exception as ex:
+            if not kwargs.get('ignore_errors', False):
+                Log.error(
+                    'Error when logging! Exception message: ' + str(ex),
+                    ignore_errors=True
+                )
 
     @staticmethod
     def init(verbose, debug):
