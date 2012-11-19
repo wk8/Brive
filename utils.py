@@ -56,7 +56,7 @@ class Log:
 
     @staticmethod
     def error(*args, **kwargs):
-        ttstr_kwargs = {'new_line':True, 'with_BT':True}
+        ttstr_kwargs = {'new_line': True, 'with_BT': True}
         ttstr_kwargs.update(kwargs)
         sys.stderr.write(Log._timestamped_string(*args, **ttstr_kwargs))
 
