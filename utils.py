@@ -3,12 +3,13 @@
 import time
 import sys
 import traceback
+import os
 
 
 class SettingsFiles:
-
-    SETTINGS_FILE = r'settings.yml'
-    CONSTANTS_FILE = r'constants.yml'
+    base_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
+    SETTINGS_FILE = base_dir + r'settings.yml'
+    CONSTANTS_FILE = base_dir + r'constants.yml'
 
 
 class Utils:
