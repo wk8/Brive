@@ -133,7 +133,7 @@ class User:
         next_page_token = response.get('nextPageToken')
         if next_page_token:
             list_so_far.extend(self._fetch_paginated_docs_list(
-                service, list_so_far, page_nb + 1,
+                service, page_nb + 1, list_so_far,
                 **{'pageToken': next_page_token}
             ))
         list_so_far.extend(response['items'])
