@@ -126,15 +126,16 @@ class User:
     def _do_fetch_docs_list(self):
         return self._fetch_paginated_docs_list(self.drive_service)
 
-    def _fetch_paginated_docs_list(self, service, list_so_far=[], **kwargs):
-        response = service.files().list().execute()
+    def _fetch_paginated_docs_list(self, service, page_nb=1,
+                                   list_so_far=[], **kwargs):
+        Log.debug('Retrieving page # {} of docs'.format(page_nb))
+        response = service.files().list(**kwargs).execute()
         next_page_token = response.get('nextPageToken')
         if next_page_token:
-            list_so_far.extend(
-                self._fetch_paginated_docs_list(
-                    service, list_so_far, **{'nextPageToken': next_page_token}
-                )
-            )
+            list_so_far.extend(self._fetch_paginated_docs_list(
+                service, list_so_far, page_nb + 1,
+                **{'nextPageToken': next_page_token}
+            ))
         list_so_far.extend(response['items'])
         return list_so_far
 
