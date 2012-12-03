@@ -130,7 +130,11 @@ class User:
         response = service.files().list().execute()
         next_page_token = response.get('nextPageToken')
         if next_page_token:
-            list_so_far.extend(self._fetch_paginated_docs_list(service, list_so_far, **{'nextPageToken': next_page_token}))
+            list_so_far.extend(
+                self._fetch_paginated_docs_list(
+                    service, list_so_far, **{'nextPageToken': next_page_token}
+                )
+            )
         list_so_far.extend(response['items'])
         return list_so_far
 
