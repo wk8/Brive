@@ -119,12 +119,20 @@ class User:
             e.brive_explanation = \
                 u'Unable to retrieve {}\'s docs list'.format(self.login)
             raise
-        self._documents = [Document(meta) for meta in docs_list['items']
+        self._documents = [Document(meta) for meta in docs_list
                            if meta['id'] not in exclude]
 
     @Utils.multiple_tries_decorator(None)
     def _do_fetch_docs_list(self):
-        return self.drive_service.files().list().execute()
+        return self._fetch_paginated_docs_list(self.drive_service)
+
+    def _fetch_paginated_docs_list(self, service, list_so_far=[], **kwargs):
+        response = service.files().list().execute()
+        next_page_token = response.get('nextPageToken')
+        if next_page_token:
+            list_so_far.extend(self._fetch_paginated_docs_list(service, list_so_far, **{'nextPageToken': next_page_token}))
+        list_so_far.extend(response['items'])
+        return list_so_far
 
     def _save_single_document(self, backend, document):
         try:
