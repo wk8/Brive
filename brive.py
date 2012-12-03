@@ -25,6 +25,11 @@ def main():
                         help='Custom doc ids to retrieve (in which case you'
                         ' must also give the login of exaclty one user owning'
                         ' those docs (using the -u flag))')
+    parser.add_argument('--list', dest='list',
+                        action='store_const', const=True, default=False,
+                        help='List all doc ids found for one user, then exit '
+                        '(as for --docs you must also give the login of '
+                        'exaclty one user)')
     parser.add_argument('--keep-on-crash', dest='keep_on_crash',
                         action='store_const', const=True, default=False,
                         help='By default, we delete all the files if an error '
@@ -46,7 +51,7 @@ def main():
     # load the logger functions
     Log.init(args.verbose, args.debug)
 
-    if args.docs and len(args.users) != 1:
+    if (args.docs or args.list) and len(args.users) != 1:
         Log.error('Incorrect input, aborting. Please use -h for more help')
         exit(1)
 
@@ -67,14 +72,20 @@ def main():
 
         # down to business
         client = Client()
-        backend = configuration.get_backend()
         users = [User(login, client) for login in args.users] if args.users \
             else client.users
+
+        if args.list:
+            # just display the list of doc ids for that user, and exit
+            print users[0].document_ids
+            return
+
+        # usual use case : retrieve the docs
+        backend = configuration.get_backend()
         if args.docs:
             # sepecific doc_ids, only one user
-            user = users[0]
             for doc_id in args.docs:
-                user.retrieve_single_document(backend, doc_id)
+                users[0].retrieve_single_document(backend, doc_id)
         else:
             # general use case
             for user in users:

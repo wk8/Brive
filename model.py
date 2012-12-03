@@ -36,6 +36,11 @@ class User:
             self._fetch_docs_list()
         return self._documents
 
+    # just the doc ids
+    @property
+    def document_ids(self):
+        return [doc.id for doc in self.documents]
+
     @property
     def drive_service(self):
         client = self._client
