@@ -7,7 +7,7 @@ import mimetypes
 import dateutil.parser
 import time
 
-from client import ExpiredTokenException, FailedRequestException
+import client
 from utils import *
 from apiclient.errors import HttpError
 from configuration import Configuration
@@ -49,38 +49,25 @@ class User:
 
     def save_documents(self, backend):
         Log.verbose(u'Processing docs for {}'.format(self.login))
-        # list of processed ids
-        done = list()
-        # keep track of errors that happen twice in a row
-        second_error = False
-        self._fetch_docs_list()
-        while self._documents:
-            document = self._documents.pop()
+        doc_generator = client.UserDocumentsGenerator(self)
+        for document in doc_generator:
+            if not backend.need_to_fetch_contents(self, document):
+                # mark as done, and get to the next one
+                Log.verbose(
+                    u'Not necessary to fetch doc id '.format(document.id)
+                )
+                doc_generator.add_processed_id(document.id)
+                continue
+
             Log.verbose(u'Processing {}\'s doc "{}" (id: {})'.format(
                 self.login, document.title, document.id
             ))
             try:
-                if not backend.need_to_fetch_contents(self, document):
-                    # mark as done, and get to the next one
-                    Log.verbose(
-                        u'Not necessary to fetch doc id '.format(document.id)
-                    )
-                    done.append(document.id)
-                    continue
                 document.fetch_contents(self._client)
-                second_error = False
-            except ExpiredTokenException:
-                if second_error:
-                    raise Exception(
-                        'Two oauth errors in a row while processing'
-                        + u'{}\'s documents '.format(self.login)
-                        + u'(doc id: {}), '.format(document.id)
-                        + 're-authentication failed'
-                    )
-                else:
-                    second_error = True
-                    self._fetch_docs_list(done)
-                    continue
+            except client.ExpiredTokenException:
+                # the re-auth is handled by the the list request
+                doc_generator.reset_to_current_page()
+                continue
             except Exception as ex:
                 explanation = \
                     'Unexpected error when processing ' \
@@ -91,7 +78,7 @@ class User:
             # now we can save it
             self._save_single_document(backend, document)
             # mark as done
-            done.append(document.id)
+            doc_generator.add_processed_id(document.id)
 
     def retrieve_single_document(self, backend, doc_id):
         try:
@@ -109,35 +96,6 @@ class User:
     @Utils.multiple_tries_decorator(None)
     def _do_retrieve_single_document(self, doc_id):
         return self.drive_service.files().get(fileId=doc_id).execute()
-
-    # fetches the documents' list, except those whose ids are in 'exclude'
-    def _fetch_docs_list(self, exclude=list()):
-        Log.debug('Fetching doc list for {}'.format(self.login))
-        try:
-            docs_list = self._do_fetch_docs_list()
-        except Exception as e:
-            e.brive_explanation = \
-                u'Unable to retrieve {}\'s docs list'.format(self.login)
-            raise
-        self._documents = [Document(meta) for meta in docs_list
-                           if meta['id'] not in exclude]
-
-    @Utils.multiple_tries_decorator(None)
-    def _do_fetch_docs_list(self):
-        return self._fetch_paginated_docs_list(self.drive_service)
-
-    def _fetch_paginated_docs_list(self, service, page_nb=1,
-                                   list_so_far=[], **kwargs):
-        Log.debug('Retrieving page # {} of docs'.format(page_nb))
-        response = service.files().list(**kwargs).execute()
-        next_page_token = response.get('nextPageToken')
-        if next_page_token:
-            list_so_far.extend(self._fetch_paginated_docs_list(
-                service, page_nb + 1, list_so_far,
-                **{'pageToken': next_page_token}
-            ))
-        list_so_far.extend(response['items'])
-        return list_so_far
 
     def _save_single_document(self, backend, document):
         try:
@@ -212,7 +170,7 @@ class Document:
                 Log.verbose(u'Starting download from {}'.format(url))
                 file_name, content = self._download_from_url(client, url)
                 self._contents[file_name] = content
-            except FailedRequestException:
+            except client.FailedRequestException:
                 Log.error(u'Download from {} for document {} failed'
                           .format(url, self.id))
                 banned_urls.append(url)
@@ -297,7 +255,7 @@ class Document:
             Document._exclusive_formats[format] = result
         return Document._exclusive_formats[format]
 
-    @Utils.multiple_tries_decorator(ExpiredTokenException)
+    @Utils.multiple_tries_decorator(client.ExpiredTokenException)
     def _download_from_url(self, client, url):
         try:
             headers, content = client.request(url)

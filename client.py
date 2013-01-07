@@ -16,7 +16,7 @@ from oauth2client.client import \
     SignedJwtAssertionCredentials, AccessTokenRefreshError
 from apiclient.discovery import build
 
-from model import User
+from model import User, Document
 from utils import *
 from configuration import Configuration
 
@@ -148,3 +148,73 @@ class Client:
 
     def _reset(self):
         self._http = Http()
+
+
+class UserDocumentsGenerator:
+
+    def __init__(self, user):
+        self._user = user
+
+    def __iter__(self):
+        self._current_page_nb = 0
+        self._current_page = []
+        self._current_page_token = None
+        self._next_page_token = None
+        self._drive_service = None
+        self._already_done_ids = []
+        return self
+
+    @Utils.multiple_tries_decorator([ExpiredTokenException, StopIteration])
+    def next(self):
+        return self._get_next_doc()
+
+    def add_processed_id(self, doc_id):
+        self._already_done_ids.append(doc_id)
+
+    def reset_to_current_page(self):
+        self._next_page_token = self._current_page_token
+        self._current_page_nb -= 1
+
+    def _get_next_doc(self, first_try=True):
+        try:
+            if not first_try or not self._drive_service:
+                # we need to re-auth
+                self._drive_service = self._user.drive_service
+            return self._do_get_next_doc()
+        except ExpiredTokenException:
+            if first_try:
+                # let's try again
+                return self._get_next_doc(False)
+            raise Exception(
+                'Two oauth errors in a row while processing'
+                + u'{}\'s documents '.format(self._user.login)
+                + 're-authentication failed'
+            )
+
+    def _do_get_next_doc(self):
+        if not self._current_page:
+            self._fetch_next_page()
+        try:
+            return self._current_page.pop(0)
+        except IndexError:
+            # no more docs to be fetched
+            raise StopIteration
+
+    def _fetch_next_page(self):
+        if not self._current_page_nb or self._next_page_token:
+            kwargs = {}
+            if self._next_page_token:
+                kwargs['pageToken'] = self._next_page_token
+            response = self._drive_service.files().list(**kwargs).execute()
+            self._current_page_token = self._next_page_token
+            self._next_page_token = response.get('nextPageToken')
+            self._current_page_nb += 1
+            items = response['items']
+            Log.debug('Retrieving page # {} of docs : found {} documents'
+                      .format(self._current_page_nb, len(items)))
+            self._current_page = [Document(meta) for meta in items
+                                  if meta['id'] not in self._already_done_ids]
+        else:
+            self._current_page = []
+        # no need to keep the processed ids of the current page in memory
+        self._already_done_ids = []

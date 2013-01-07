@@ -90,6 +90,7 @@ def main():
             # general use case
             for user in users:
                 user.save_documents(backend)
+
         backend.finalize()
     except BaseException as ex:
         if backend:
