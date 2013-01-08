@@ -7,7 +7,7 @@ import mimetypes
 import dateutil.parser
 import time
 
-import client
+import client as client_module
 from utils import *
 from apiclient.errors import HttpError
 from configuration import Configuration
@@ -49,7 +49,7 @@ class User:
 
     def save_documents(self, backend):
         Log.verbose(u'Processing docs for {}'.format(self.login))
-        doc_generator = client.UserDocumentsGenerator(self)
+        doc_generator = client_module.UserDocumentsGenerator(self)
         for document in doc_generator:
             if not backend.need_to_fetch_contents(self, document):
                 # mark as done, and get to the next one
@@ -64,7 +64,7 @@ class User:
             ))
             try:
                 document.fetch_contents(self._client)
-            except client.ExpiredTokenException:
+            except client_module.ExpiredTokenException:
                 # the re-auth is handled by the the list request
                 doc_generator.reset_to_current_page()
                 continue
@@ -174,7 +174,7 @@ class Document:
                 Log.verbose(u'Starting download from {}'.format(url))
                 file_name, content = self._download_from_url(client, url)
                 self._contents[file_name] = content
-            except client.FailedRequestException:
+            except client_module.FailedRequestException:
                 Log.error(u'Download from {} for document {} failed'
                           .format(url, self.id))
                 banned_urls.append(url)
@@ -259,7 +259,7 @@ class Document:
             Document._exclusive_formats[format] = result
         return Document._exclusive_formats[format]
 
-    @Utils.multiple_tries_decorator(client.ExpiredTokenException)
+    @Utils.multiple_tries_decorator(client_module.ExpiredTokenException)
     def _download_from_url(self, client, url):
         try:
             headers, content = client.request(url)
