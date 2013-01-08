@@ -148,8 +148,12 @@ class Document:
 
     @property
     def modified_timestamp(self):
-        datetime_object = dateutil.parser.parse(self.get_meta('modifiedDate'))
-        return int(time.mktime(datetime_object.timetuple()))
+        try:
+            datetime_object = dateutil.parser.parse(self.get_meta('modifiedDate'))
+            return int(time.mktime(datetime_object.timetuple()))
+        except Exception:
+            # not a big deal if that fails from time to time
+            return 0
 
     # sets contents to be a dict mapping file names to contents
     # force_refresh = True forces to re-fetch the contents even if we have
