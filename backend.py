@@ -49,7 +49,7 @@ class BaseBackend(object):
 
 
 # doens't do anything, just say it was asked to save
-# mainly for Log.debugging purposes
+# mainly for debugging purposes
 class DummyBackend(BaseBackend):
 
     def save(self, user, document):
