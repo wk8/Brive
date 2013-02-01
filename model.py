@@ -146,8 +146,17 @@ class UserFolders:
         return self._paths[folder_id]
 
     def _get_folder_path(self, folder_id):
-        folder_doc = self._user.retrieve_single_document_meta(folder_id)
-        return self.get_path(folder_doc.parent_id) + os.sep + folder_doc.title
+        try:
+            folder_doc = self._user.retrieve_single_document_meta(folder_id)
+            return self.get_path(folder_doc.parent_id) + os.sep\
+                + folder_doc.title
+        except Exception as ex:
+            # no big deal
+            Log.error(
+                u'Error retrieving path for folder id {} : '.format(folder_id)
+                + '{}'.format(ex)
+            )
+            return ''
 
 
 class Document:
