@@ -58,6 +58,7 @@ class User:
         doc_generator = client_module.UserDocumentsGenerator(self)
         for document in doc_generator:
             if document.is_folder:
+                doc_generator.add_processed_id(document.id)
                 continue
 
             if not backend.need_to_fetch_contents(self, document)\
@@ -89,6 +90,8 @@ class User:
             self._save_single_document(backend, document)
             # mark as done
             doc_generator.add_processed_id(document.id)
+        # let's save some memory
+        self._cleanup()
 
     def retrieve_single_document(self, backend, doc_id):
         try:
@@ -122,6 +125,10 @@ class User:
             raise
         # no need to keep the potentially big document's contents in memory
         document.del_contents()
+
+    def _cleanup(self):
+        del self._documents
+        del self._folders
 
 
 # keeps tracks of the user's folders, and caches the paths to them
