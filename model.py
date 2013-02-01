@@ -47,11 +47,12 @@ class User:
         client.authorize(self)
         return client.drive_service
 
-    def save_documents(self, backend):
+    def save_documents(self, backend, owned_only):
         Log.verbose(u'Processing docs for {}'.format(self.login))
         doc_generator = client_module.UserDocumentsGenerator(self)
         for document in doc_generator:
-            if not backend.need_to_fetch_contents(self, document):
+            if not backend.need_to_fetch_contents(self, document)\
+                    or (owned_only and not document.is_owned):
                 # mark as done, and get to the next one
                 Log.verbose(
                     u'Not necessary to fetch doc id '.format(document.id)
@@ -145,6 +146,13 @@ class Document:
     @property
     def title(self):
         return self.get_meta('title')
+
+    @property
+    def is_owned(self):
+        try:
+            return self.get_meta('userPermission', {})['role'] == 'owner'
+        except KeyError:
+            return False
 
     @property
     def modified_timestamp(self):

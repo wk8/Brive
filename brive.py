@@ -49,6 +49,11 @@ def main():
     parser.add_argument('--user-list', dest='user_list',
                         action='store_const', const=True, default=False,
                         help='List all users found on the domain, then exit')
+    parser.add_argument('--owned-only', dest='owned_only',
+                        action='store_const', const=True, default=False,
+                        help='If activated, only documents owned by the '
+                        'user(s) will be downloaded (except if a not-owned doc'
+                        'is explictely required with --docs)')
     args = parser.parse_args()
 
     # load the logger functions
@@ -97,7 +102,7 @@ def main():
         else:
             # general use case
             for user in users:
-                user.save_documents(backend)
+                user.save_documents(backend, args.owned_only)
 
         backend.finalize()
     except BaseException as ex:
