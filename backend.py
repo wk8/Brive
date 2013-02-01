@@ -68,8 +68,9 @@ class SimpleBackend(BaseBackend):
         Log.debug('SimpleBackend loaded')
 
     def save(self, user, document):
-        self._mkdir(user.login)
-        prefix = self._root_dir + user.login + os.sep
+        path = user.login + os.sep + document.path
+        self._mkdir(path)
+        prefix = self._root_dir + path
         for file_name, content in document.contents.items():
             path = prefix + file_name
             Log.debug(u'Writing {}\'s {} to {}'.format(
@@ -111,7 +112,7 @@ class TarBackend(SimpleBackend):
             )
         tar_file = self._tar_files[user.login]
         for file_name, content in document.contents.items():
-            path = user.login + os.sep + file_name
+            path = user.login + os.sep + document.path + file_name
             Log.debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))

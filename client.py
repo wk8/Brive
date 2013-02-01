@@ -237,8 +237,10 @@ class UserDocumentsGenerator:
             items = response['items']
             Log.debug('Retrieving page # {} of docs : found {} documents'
                       .format(self._current_page_nb, len(items)))
-            self._current_page = [Document(meta) for meta in items
-                                  if meta['id'] not in self._already_done_ids]
+            self._current_page = [
+                Document(meta, self._user.folders) for meta in items
+                if meta['id'] not in self._already_done_ids
+            ]
         else:
             self._current_page = []
         # no need to keep the processed ids of the current page in memory

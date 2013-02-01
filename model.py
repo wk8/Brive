@@ -23,6 +23,7 @@ class User:
         self._login = login
         self._client = client
         self._documents = None
+        self._folders = UserFolders(self)
 
     def __repr__(self):
         return self._login
@@ -30,6 +31,10 @@ class User:
     @property
     def login(self):
         return self._login
+
+    @property
+    def folders(self):
+        return self._folders
 
     @property
     def documents(self):
@@ -52,6 +57,9 @@ class User:
         Log.verbose(u'Processing docs for {}'.format(self.login))
         doc_generator = client_module.UserDocumentsGenerator(self)
         for document in doc_generator:
+            if document.is_folder:
+                continue
+
             if not backend.need_to_fetch_contents(self, document)\
                     or (owned_only and not document.is_owned):
                 # mark as done, and get to the next one
@@ -84,8 +92,7 @@ class User:
 
     def retrieve_single_document(self, backend, doc_id):
         try:
-            meta = self._do_retrieve_single_document(doc_id)
-            document = Document(meta)
+            document = self.retrieve_single_document_meta(doc_id)
         except Exception as e:
             explanation = 'Error while retrieving single document id ' \
                 + u'{} for user {}, '.format(doc_id, self.login) \
@@ -96,8 +103,9 @@ class User:
         self._save_single_document(backend, document)
 
     @Utils.multiple_tries_decorator(None)
-    def _do_retrieve_single_document(self, doc_id):
-        return self.drive_service.files().get(fileId=doc_id).execute()
+    def retrieve_single_document_meta(self, doc_id):
+        meta = self.drive_service.files().get(fileId=doc_id).execute()
+        return Document(meta, self.folders)
 
     def _save_single_document(self, backend, document):
         try:
@@ -116,16 +124,38 @@ class User:
         document.del_contents()
 
 
+# keeps tracks of the user's folders, and caches the paths to them
+class UserFolders:
+
+    def __init__(self, user):
+        self._user = user
+        # dict that maps a folder id to its path relatively to the user's root
+        # the root has ID None by convention
+        self._paths = {None: ''}
+
+    def get_path(self, folder_id):
+        if folder_id not in self._paths:
+            self._paths[folder_id] = self._get_folder_path(folder_id)
+        return self._paths[folder_id]
+
+    def _get_folder_path(self, folder_id):
+        folder_doc = self._user.retrieve_single_document_meta(folder_id)
+        return self.get_path(folder_doc.parent_id) + os.sep + folder_doc.title
+
+
 class Document:
 
     _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
     _split_extension_regex = re.compile(r'\.([^.]+)$')
     _extension_from_url = re.compile(r'exportFormat=([^&]+)$')
 
+    _folder_mime_type = r'application/vnd.google-apps.folder'
+
     _exclusive_formats = dict()
 
-    def __init__(self, meta):
+    def __init__(self, meta, user_folders):
         self._meta = meta
+        self._user_folders = user_folders
         self._contents = None
 
     def __repr__(self):
@@ -146,7 +176,9 @@ class Document:
 
     @property
     def title(self):
-        return self.get_meta('title')
+        # forbid os.sep in the name, and replace it with '_',
+        # to prevent bugs when saving
+        return self.get_meta('title').replace(os.sep, '_')
 
     @property
     def is_owned(self):
@@ -154,6 +186,23 @@ class Document:
             return self.get_meta('userPermission', {})['role'] == 'owner'
         except KeyError:
             return False
+
+    @property
+    def is_folder(self):
+        return self.get_meta('mimeType') == Document._folder_mime_type
+
+    @property
+    def path(self):
+        result = self._user_folders.get_path(self.parent_id)
+        result += os.sep if result else ''
+        return result
+
+    @property
+    def parent_id(self):
+        parent = self.get_meta('parents')[0]
+        if parent['isRoot']:
+            return None
+        return parent['id']
 
     @property
     def modified_timestamp(self):
@@ -322,9 +371,6 @@ class Document:
             )
         raw_name = name_matches[0]
         result = u'{}_{}'.format(self.title, self.id)
-        # forbid os.sep in the name, and replace it with '_' to prevent bugs
-        # when saving
-        result.replace(os.sep, '_')
         # insert the doc id in the name (just before the extension)
         # to make sure it's unique
         extension_matches = Document._split_extension_regex.findall(raw_name)
