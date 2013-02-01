@@ -135,20 +135,18 @@ class Client:
 
     # gets the complete list of users
     def _get_all_user_logins(self):
-        result = []
+        result = set()
         current_list = []
         previous_last_login = None
         current_last_login = None
         while current_last_login is None\
                 or current_last_login != previous_last_login:
-            result += current_list
             previous_last_login = current_last_login
             current_list = self._get_single_user_page(current_last_login)
-            if current_last_login:
-                # remove the first login, which we already have,
-                # except on the first iteration
-                current_list = current_list[1:]
             current_last_login = current_list[-1]
+            result.update(current_list)
+        result = list(result)
+        result.sort()
         return result
 
     @Utils.multiple_tries_decorator(ExpectedFailedRequestException)
