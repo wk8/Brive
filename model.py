@@ -149,7 +149,9 @@ class Document:
     @property
     def modified_timestamp(self):
         try:
-            datetime_object = dateutil.parser.parse(self.get_meta('modifiedDate'))
+            datetime_object = dateutil.parser.parse(
+                self.get_meta('modifiedDate')
+            )
             return int(time.mktime(datetime_object.timetuple()))
         except Exception:
             # not a big deal if that fails from time to time

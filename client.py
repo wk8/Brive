@@ -8,6 +8,10 @@ class ExpiredTokenException(Exception):
 class FailedRequestException(Exception):
     pass
 
+
+class ExpectedFailedRequestException(Exception):
+    pass
+
 import feedparser
 
 from httplib2 import Http
@@ -104,23 +108,10 @@ class Client:
     def users(self):
         try:
             self.authorize(self._admin)
-            headers, xml = self.request(
-                self._users_api_endpoint, brive_check_status=False
-            )
-            status = int(headers['status'])
-            if status == 200:
-                data = feedparser.parse(xml)
-                result = [User(user['title'], self)
-                          for user in data['entries']]
-                Log.verbose(u'Found users: {}'.format(result))
-                return result
-            elif status == 403:
-                raise Exception(u'User {} is not an admin'
-                                .format(self._admin.login))
-            else:
-                raise Exception(
-                    'Unexpected HTP status when requesting users\' list'
-                    + u': {}\nResponse: {}'.format(status, xml))
+            user_logins = self._get_all_user_logins()
+            result = [User(login, self) for login in user_logins]
+            Log.verbose(u'Found users: {}'.format(result))
+            return result
         except AccessTokenRefreshError as oauth_error:
             explanation = \
                 u'App not authorized on {}'.format(self._domain) \
@@ -128,14 +119,50 @@ class Client:
             oauth_error.brive_explanation = explanation
             raise
 
-    @Utils.multiple_tries_decorator(None)
+    # returns a list of users, on the current page
+    def _get_single_user_page(self, start_username=None):
+        url = self._users_api_endpoint
+        url += ('?startUsername=' + start_username) if start_username else ''
+        try:
+            headers, xml = self.request(
+                self._users_api_endpoint, brive_expected_error_status=403
+            )
+            data = feedparser.parse(xml)
+            return [user['title'] for user in data['entries']]
+        except ExpectedFailedRequestException:
+            raise Exception(u'User {} is not an admin'
+                            .format(self._admin.login))
+
+    # gets the complete list of users
+    def _get_all_user_logins(self):
+        result = []
+        current_list = []
+        previous_last_login = None
+        current_last_login = None
+        while current_last_login is None\
+                or current_last_login != previous_last_login:
+            result += current_list
+            previous_last_login = current_last_login
+            current_list = self._get_single_user_page(current_last_login)
+            if current_last_login:
+                # remove the first login, which we already have,
+                # except on the first iteration
+                current_list = current_list[1:]
+            current_last_login = current_list[-1]
+        return result
+
+    @Utils.multiple_tries_decorator(ExpectedFailedRequestException)
     def request(self, *args, **kwargs):
-        check_status_code = kwargs.pop('brive_check_status', True)
+        expected_error_status = kwargs.pop('brive_expected_error_status', [])
+        if not isinstance(expected_error_status, list):
+            expected_error_status = [expected_error_status]
         result = self._http.request(*args, **kwargs)
-        if check_status_code:
-            headers = result[0]
-            status = int(headers['status'])
-            if status != 200:
+        headers = result[0]
+        status = int(headers['status'])
+        if status != 200:
+            if status in expected_error_status:
+                raise ExpectedFailedRequestException()
+            else:
                 raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
                     .format(status, headers)
