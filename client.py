@@ -159,7 +159,7 @@ class Client:
         status = int(headers['status'])
         if status != 200:
             if status in expected_error_status:
-                raise ExpectedFailedRequestException()
+                raise ExpectedFailedRequestException(status)
             else:
                 raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
