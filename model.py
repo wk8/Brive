@@ -65,7 +65,7 @@ class User:
                     or (owned_only and not document.is_owned):
                 # mark as done, and get to the next one
                 Log.verbose(
-                    u'Not necessary to fetch doc id '.format(document.id)
+                    u'Not necessary to fetch doc id {}'.format(document.id)
                 )
                 doc_generator.add_processed_id(document.id)
                 continue
