@@ -125,7 +125,7 @@ class Client:
         url += ('?startUsername=' + start_username) if start_username else ''
         try:
             headers, xml = self.request(
-                self._users_api_endpoint, brive_expected_error_status=403
+                url, brive_expected_error_status=403
             )
             data = feedparser.parse(xml)
             return [user['title'] for user in data['entries']]
