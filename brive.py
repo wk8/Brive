@@ -46,6 +46,9 @@ def main():
                         'get downloaded (note that some other related '
                         'formats may be downloaded as well as this is based on'
                         ' Python\'s mimetypes package)')
+    parser.add_argument('--user-list', dest='user_list',
+                        action='store_const', const=True, default=False,
+                        help='List all users found on the domain, then exit')
     args = parser.parse_args()
 
     # load the logger functions
@@ -74,6 +77,11 @@ def main():
         client = Client()
         users = [User(login, client) for login in args.users] if args.users \
             else client.users
+
+        if args.user_list:
+            # just display the list of all the users, then exit
+            print users
+            return
 
         if args.list:
             # just display the list of doc ids for that user, and exit
