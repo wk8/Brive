@@ -6,6 +6,7 @@ from StringIO import StringIO
 import mimetypes
 import dateutil.parser
 import time
+import os
 
 import client as client_module
 from utils import *
@@ -321,6 +322,9 @@ class Document:
             )
         raw_name = name_matches[0]
         result = u'{}_{}'.format(self.title, self.id)
+        # forbid os.sep in the name, and replace it with '_' to prevent bugs
+        # when saving
+        result.replace(os.sep, '_')
         # insert the doc id in the name (just before the extension)
         # to make sure it's unique
         extension_matches = Document._split_extension_regex.findall(raw_name)
