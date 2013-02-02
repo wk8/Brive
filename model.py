@@ -24,6 +24,7 @@ class User:
         self._client = client
         self._documents = None
         self._folders = UserFolders(self)
+        self._black_listed_ids = []
 
     def __repr__(self):
         return self._login
@@ -75,9 +76,20 @@ class User:
             ))
             try:
                 document.fetch_contents(self._client)
-            except client_module.ExpiredTokenException:
+            except client_module.ExpiredTokenException as ex:
+                if document.id in self._black_listed_ids:
+                    # we already got a 403 on that one!
+                    explanation = 'Two 403 errors on a row on document id {}'
+                        .format(document.id)
+                    ex.brive_explanation = explanation
+                    raise
+                Log.verbose(
+                    '403 response, sleeping one minute and re-trying...'
+                )
+                time.sleep(60)
                 # the re-auth is handled by the the list request
                 doc_generator.reset_to_current_page()
+                self._black_listed_ids.append(document.id)
                 continue
             except Exception as ex:
                 explanation = \
@@ -107,7 +119,6 @@ class User:
 
     @Utils.multiple_tries_decorator(None)
     def retrieve_single_document_meta(self, doc_id):
-        time.sleep(1)
         meta = self.drive_service.files().get(fileId=doc_id).execute()
         return Document(meta, self.folders)
 
@@ -334,11 +345,13 @@ class Document:
     @Utils.multiple_tries_decorator(client_module.ExpiredTokenException)
     def _download_from_url(self, client, url):
         try:
-            headers, content = client.request(url)
+            headers, content = client.request(
+                url, brive_expected_error_status=403
+            )
             self._check_download_integrity(headers, content)
             return self._get_file_name(headers), content
-        except KeyError:
-            # token expired
+        except (KeyError, client_module.ExpectedFailedRequestException):
+            # token expired, or an "User Rate Limit Exceeded" error,
             raise ExpiredTokenException()
 
     def _check_download_integrity(self, headers, content):
