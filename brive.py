@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
+logging.basicConfig(level=logging.ERROR)
 
 from configuration import *
 from client import Client
