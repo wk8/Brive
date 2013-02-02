@@ -8,6 +8,8 @@ import dateutil.parser
 import time
 import os
 
+from oauth2client.client import AccessTokenRefreshError
+
 import client as client_module
 from utils import *
 from apiclient.errors import HttpError
@@ -76,6 +78,7 @@ class User:
             ))
             try:
                 document.fetch_contents(self._client)
+                self._save_single_document(backend, document)
             except client_module.ExpiredTokenException as ex:
                 if document.id in self._black_listed_ids:
                     # we already got a 403 on that one!
@@ -98,8 +101,6 @@ class User:
                     + u'(doc id: {})'.format(document.id)
                 ex.brive_explanation = explanation
                 raise
-            # now we can save it
-            self._save_single_document(backend, document)
             # mark as done
             doc_generator.add_processed_id(document.id)
         # let's save some memory
@@ -119,8 +120,12 @@ class User:
 
     @Utils.multiple_tries_decorator(None)
     def retrieve_single_document_meta(self, doc_id):
-        meta = self.drive_service.files().get(fileId=doc_id).execute()
-        return Document(meta, self.folders)
+        try:
+            meta = self.drive_service.files().get(fileId=doc_id).execute()
+            return Document(meta, self.folders)
+        except AccessTokenRefreshError:
+            # most likely 403
+            raise client_module.ExpiredTokenException
 
     def _save_single_document(self, backend, document):
         try:
