@@ -14,12 +14,13 @@ import configuration
 # a helper class for actual backends
 class BaseBackend(object):
 
-    def __init__(self):
+    def __init__(self, keep_dirs):
         self._root_dir = configuration.Configuration.get(
             'backend_root_dir', not_null=True
         )
         # add a trailing slash to root_dir if there isn't any
         self._root_dir += '' if self._root_dir[-1] == os.sep else os.sep
+        self._keep_dirs = keep_dirs
 
     # can be overriden for more elaborate backends
     def need_to_fetch_contents(self, user, document):
@@ -59,8 +60,8 @@ class DummyBackend(BaseBackend):
 # simplest backend possible: just download everything
 class SimpleBackend(BaseBackend):
 
-    def __init__(self):
-        super(SimpleBackend, self).__init__()
+    def __init__(self, keep_dirs):
+        super(SimpleBackend, self).__init__(keep_dirs)
         # create the root directory for this session
         dir_name = BaseBackend._get_session_dir_name()
         self._mkdir(dir_name)
@@ -68,7 +69,7 @@ class SimpleBackend(BaseBackend):
         Log.debug('SimpleBackend loaded')
 
     def save(self, user, document):
-        path = user.login + os.sep + document.path
+        path = self._get_path(user, document)
         self._mkdir(path)
         prefix = self._root_dir + path
         for file_name, content in document.contents.items():
@@ -85,12 +86,17 @@ class SimpleBackend(BaseBackend):
                     .format(self._root_dir))
         shutil.rmtree(self._root_dir)
 
+    def _get_path(self, user, document):
+        path = user.login + os.sep
+        path += document.path if self._keep_dirs else ''
+        return path
+
 
 # also downloads everything, but compresses it
 class TarBackend(SimpleBackend):
 
-    def __init__(self):
-        super(TarBackend, self).__init__()
+    def __init__(self, keep_dirs):
+        super(TarBackend, self).__init__(keep_dirs)
         # get the compression format
         self._format = configuration.Configuration.get(
             'backend_compression_format', not_null=True
@@ -112,7 +118,8 @@ class TarBackend(SimpleBackend):
             )
         tar_file = self._tar_files[user.login]
         for file_name, content in document.contents.items():
-            path = user.login + os.sep + document.path + file_name
+            path = self._get_path(user, document)
+            path += file_name
             Log.debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))

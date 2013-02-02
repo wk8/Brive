@@ -6,7 +6,7 @@ except ImportError:
 
 setup(
     name = "Brive",
-    version = "0.3.3",
+    version = "0.3.4",
     packages = find_packages(),
 
     author = "Jean Rouge",

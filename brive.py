@@ -55,7 +55,14 @@ def main():
                         action='store_const', const=True, default=False,
                         help='If activated, only documents owned by the '
                         'user(s) will be downloaded (except if a not-owned doc'
-                        'is explictely required with --docs)')
+                        ' is explictely required with --docs)')
+    parser.add_argument('--keep-dirs', dest='keep_dirs',
+                        action='store_const', const=True, default=False,
+                        help='If activated, Brive will try to rebuild the same'
+                        ' folder hierarchy. BE AWARE, THOUGH, THAT THIS MIGHT '
+                        'RESULT IN A MUCH LONGER RUNTIME, as we\'ll have to '
+                        'make a lot more requests to Google\'s API, and thus '
+                        'wait a lot more to prevent throttling.')
     args = parser.parse_args()
 
     # load the logger functions
@@ -96,7 +103,7 @@ def main():
             return
 
         # usual use case : retrieve the docs
-        backend = configuration.get_backend()
+        backend = configuration.get_backend(args.keep_dirs)
         if args.docs:
             # sepecific doc_ids, only one user
             for doc_id in args.docs:
