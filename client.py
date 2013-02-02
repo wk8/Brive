@@ -13,6 +13,7 @@ class ExpectedFailedRequestException(Exception):
     pass
 
 import feedparser
+import time
 
 from httplib2 import Http
 from OpenSSL.crypto import Error as CryptoError
@@ -151,6 +152,8 @@ class Client:
 
     @Utils.multiple_tries_decorator(ExpectedFailedRequestException)
     def request(self, *args, **kwargs):
+        # we need to not make too many requests per second
+        time.sleep(1)
         expected_error_status = kwargs.pop('brive_expected_error_status', [])
         if not isinstance(expected_error_status, list):
             expected_error_status = [expected_error_status]
@@ -230,6 +233,7 @@ class UserDocumentsGenerator:
             kwargs = {}
             if self._next_page_token:
                 kwargs['pageToken'] = self._next_page_token
+            time.sleep(1)
             response = self._drive_service.files().list(**kwargs).execute()
             self._current_page_token = self._next_page_token
             self._next_page_token = response.get('nextPageToken')

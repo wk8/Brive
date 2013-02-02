@@ -107,6 +107,7 @@ class User:
 
     @Utils.multiple_tries_decorator(None)
     def retrieve_single_document_meta(self, doc_id):
+        time.sleep(1)
         meta = self.drive_service.files().get(fileId=doc_id).execute()
         return Document(meta, self.folders)
 
@@ -146,10 +147,6 @@ class UserFolders:
         return self._paths[folder_id]
 
     def _get_folder_path(self, folder_id):
-        # we need to not make too many requests per second to avoid Google's
-        # wrath: let's sleep 100 ms to make sure we never make more than 10
-        # requests per second
-        time.sleep(0.1)
         folder_doc = self._user.retrieve_single_document_meta(folder_id)
         return self.get_path(folder_doc.parent_id) + os.sep\
             + folder_doc.title
