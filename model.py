@@ -79,7 +79,7 @@ class User:
             except client_module.ExpiredTokenException as ex:
                 if document.id in self._black_listed_ids:
                     # we already got a 403 on that one!
-                    explanation = 'Two 403 errors on a row on document id {}'
+                    explanation = 'Two 403 errors on a row on document id {}'\
                         .format(document.id)
                     ex.brive_explanation = explanation
                     raise
