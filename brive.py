@@ -104,6 +104,7 @@ def main():
             for user in users:
                 user.save_documents(backend, args.owned_only)
 
+        Log.verbose('All successful, finalizing backend...')
         backend.finalize()
     except BaseException as ex:
         if backend:

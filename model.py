@@ -146,17 +146,9 @@ class UserFolders:
         return self._paths[folder_id]
 
     def _get_folder_path(self, folder_id):
-        try:
-            folder_doc = self._user.retrieve_single_document_meta(folder_id)
-            return self.get_path(folder_doc.parent_id) + os.sep\
-                + folder_doc.title
-        except Exception as ex:
-            # no big deal
-            Log.error(
-                u'Error retrieving path for folder id {} : '.format(folder_id)
-                + '{}'.format(ex)
-            )
-            return ''
+        folder_doc = self._user.retrieve_single_document_meta(folder_id)
+        return self.get_path(folder_doc.parent_id) + os.sep\
+            + folder_doc.title
 
 
 class Document:
@@ -215,10 +207,13 @@ class Document:
 
     @property
     def parent_id(self):
-        parent = self.get_meta('parents')[0]
-        if parent['isRoot']:
+        try:
+            parent = self.get_meta('parents')[0]
+            if parent['isRoot']:
+                return None
+            return parent['id']
+        except IndexError:
             return None
-        return parent['id']
 
     @property
     def modified_timestamp(self):
