@@ -198,6 +198,7 @@ class UserDocumentsGenerator:
 
     def reset_to_current_page(self):
         self._next_page_token = self._current_page_token
+        self._current_page = []
         self._current_page_nb -= 1
 
     def _get_next_doc(self, first_try=True):

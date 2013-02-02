@@ -146,6 +146,7 @@ class User:
     def _cleanup(self):
         del self._documents
         del self._folders
+        del self._black_listed_ids
 
 
 # keeps tracks of the user's folders, and caches the paths to them
