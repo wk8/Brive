@@ -58,12 +58,11 @@ class User:
 
     def save_documents(self, backend, owned_only):
         Log.verbose(u'Processing docs for {}'.format(self.login))
-        doc_generator = client_module.UserDocumentsGenerator(self)
+        # let's filter folders out
+        doc_generator = client_module.UserDocumentsGenerator(
+            self, Document.get_folder_query()
+        )
         for document in doc_generator:
-            if document.is_folder:
-                doc_generator.add_processed_id(document.id)
-                continue
-
             if not backend.need_to_fetch_contents(self, document)\
                     or (owned_only and not document.is_owned):
                 # mark as done, and get to the next one
@@ -86,6 +85,7 @@ class User:
                         .format(document.id)
                     ex.brive_explanation = explanation
                     raise
+                # otherwise try again
                 Log.verbose(
                     '403 response, sleeping one minute and re-trying...'
                 )
@@ -118,6 +118,8 @@ class User:
         document.fetch_contents(self._client)
         self._save_single_document(backend, document)
 
+    # NOTE: Google's API doesn't like to get a lot of such calls,
+    # so use defensively...
     @Utils.multiple_tries_decorator(None)
     def retrieve_single_document_meta(self, doc_id):
         try:
@@ -154,22 +156,34 @@ class UserFolders:
 
     def __init__(self, user):
         self._user = user
-        # dict that maps a folder id to its path relatively to the user's root
-        # the root has ID None by convention
-        self._paths = {None: ''}
+        self._initialized = False
 
     def get_path(self, folder_id):
-        if folder_id not in self._paths:
-            self._paths[folder_id] = self._get_folder_path(folder_id)
-        return self._paths[folder_id]
+        if folder_id is None:
+            # the root has ID None by convention
+            return ''
+        self._do_init()
+        folder = self._folders[folder_id]
+        parent_path = self.get_path(folder.parent_id)
+        parent_path += os.sep if parent_path else ''
+        return parent_path + folder.title
 
-    def _get_folder_path(self, folder_id):
-        folder_doc = self._user.retrieve_single_document_meta(folder_id)
-        return self.get_path(folder_doc.parent_id) + os.sep\
-            + folder_doc.title
+    def _do_init(self):
+        if self._initialized:
+            return
+        self._initialized = True
+        Log.debug(u'Initializing folders for user {}'.format(self._user.login))
+        # dict that maps a folder id to its object
+        self._folders = self._build_folders()
+
+    def _build_folders(self):
+        folder_generator = client_module.UserDocumentsGenerator(
+            self._user, Document.get_folder_query(False), Folder
+        )
+        return {folder.id: folder for folder in folder_generator}
 
 
-class Document:
+class Document(object):
 
     _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
     _split_extension_regex = re.compile(r'\.([^.]+)$')
@@ -250,6 +264,13 @@ class Document:
     def fetch_contents(self, client, force_refresh=False):
         if self._contents is None or force_refresh:
             self._do_fetch_contents(client)
+
+    # returns the query string to use to call Google's API
+    @staticmethod
+    def get_folder_query(exclude=True):
+        return "%smimeType = '%s'" % (
+            'not ' if exclude else '', Document._folder_mime_type
+        )
 
     def _do_fetch_contents(self, client, second_try=False, banned_urls=list()):
         debug_msg = u'Fetching contents for doc id {}'.format(self.id)
@@ -409,3 +430,14 @@ class Document:
             extension = extension_matches[0]
             result += u'.{}'.format(extension)
         return result
+
+
+# it's only a folder, no need to keep all the meta data
+# (just parent_id and title)
+class Folder(Document):
+
+    def __init__(self, meta, user_folders):
+        super(Folder, self).__init__(meta, user_folders)
+        new_meta = {key: meta[key] for key in ('id', 'parents', 'title')}
+        del self._meta
+        self._meta = new_meta

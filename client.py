@@ -20,7 +20,7 @@ from oauth2client.client import \
     SignedJwtAssertionCredentials, AccessTokenRefreshError
 from apiclient.discovery import build
 
-from model import User, Document
+from model import User, Document, Folder
 from utils import *
 from configuration import Configuration
 
@@ -177,8 +177,12 @@ class Client:
 
 class UserDocumentsGenerator:
 
-    def __init__(self, user):
+    def __init__(self, user, query=None, cls=Document):
         self._user = user
+        # the query is used for the requests to the API
+        # (see doc @ https://developers.google.com/drive/search-parameters)
+        self._query = query
+        self._class = cls
 
     def __iter__(self):
         self._current_page_nb = 0
@@ -231,6 +235,8 @@ class UserDocumentsGenerator:
             kwargs = {}
             if self._next_page_token:
                 kwargs['pageToken'] = self._next_page_token
+            if self._query:
+                kwargs['q'] = self._query
             response = self._drive_service.files().list(**kwargs).execute()
             self._current_page_token = self._next_page_token
             self._next_page_token = response.get('nextPageToken')
@@ -239,7 +245,7 @@ class UserDocumentsGenerator:
             Log.debug('Retrieving page # {} of docs : found {} documents'
                       .format(self._current_page_nb, len(items)))
             self._current_page = [
-                Document(meta, self._user.folders) for meta in items
+                self._class(meta, self._user.folders) for meta in items
                 if meta['id'] not in self._already_done_ids
             ]
         else:
