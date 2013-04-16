@@ -124,6 +124,7 @@ def main():
                 user.save_documents(backend, args.owned_only)
 
         Log.verbose('All successful, finalizing backend...')
+        backend.finalize()
 
         # delete the old backups, if so asked
         if args.age_limit:
@@ -137,7 +138,7 @@ def main():
                         'Unexpected shutdown, trying to finalize backend...'
                         + ' (you selected --keep-on-crash)'
                     )
-                    backend.finalize(False)
+                    backend.finalize()
                 else:
                     backend.clean_up()
             except:

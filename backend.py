@@ -21,6 +21,7 @@ class BaseBackend(object):
         )
         self._keep_dirs = keep_dirs
         self._session_name = self._generate_session_name()
+        Log.verbose(u'Current session: {}'.format(self._session_name))
 
     # can be overriden for more elaborate backends
     def need_to_fetch_contents(self, user, document):
@@ -43,7 +44,7 @@ class BaseBackend(object):
             os.remove(path)
 
     def finalize(self):
-        pass
+        Log.verbose(u'Finalazing session: {}'.format(self._session_name))
 
     # called to clean up if there was an exception halfway through
     def clean_up(self):
@@ -210,6 +211,7 @@ class TarBackend(SimpleBackend):
             tar_file.addfile(tarnfo, file_object)
 
     def finalize(self):
+        super(TarBackend, self).finalize()
         Log.debug('Closing tar files')
         for tar_file in self._tar_files.values():
             tar_file.close()
