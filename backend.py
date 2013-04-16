@@ -89,8 +89,8 @@ class SimpleBackend(BaseBackend):
 
     def save(self, user, document):
         path = self._get_path(user, document)
-        self._mkdir(os.path.join(self._current_dir, path))
-        prefix = os.path.join(self._root_dir, path)
+        self._mkdir(os.path.join(self._session_name, path))
+        prefix = os.path.join(self._current_dir, path)
         for file_name, content in document.contents.items():
             path = os.path.join(prefix, file_name)
             Log.debug(u'Writing {}\'s {} to {}'.format(
@@ -120,34 +120,41 @@ class SimpleBackend(BaseBackend):
                 pass
         return None
 
-    SECS_PER_DAY = 86400
+    _SECS_PER_DAY = 86400
 
     # returns true iff name is a backup dir older than
     # the prescribed # of days
     def _should_delete_old_saves(self, name, days):
         bckup_time = self._get_backup_date(name)
-        return bckup_time and time.mktime(self._date_from_session_name(self._session_name)) - time.mktime(bckup_time) > days * SECS_PER_DAY
+        return bckup_time and time.mktime(self._date_from_session_name(self._session_name)) - time.mktime(bckup_time) > days * self._SECS_PER_DAY
 
-    def _delete_old_saves_in_session(self, name, logins):
-        current_bckup = os.path.join(self._root_dir, name)
+    def _delete_old_saves_in_session(self, session_name, logins):
+        current_bckup = os.path.join(self._root_dir, session_name)
         for name in os.listdir(current_bckup):
             login = self._get_login_from_name(name)
             if login and login in logins:
-                path_to_del = os.path.join(current_bckup, name)
+                path_to_del = os.path.join(session_name, name)
                 Log.verbose(u'Deleting obsolete path {}'.format(path_to_del))
                 self._delete(path_to_del)
+        # delete the whole dir if there's nothing left
+        try:
+            os.rmdir(current_bckup)
+            Log.verbose(u'Deleting empty backup dir {}'.format(current_bckup))
+        except OSError as ex:
+            if ex.errno != errno.ENOTEMPTY:
+                raise
 
     # deletes previous saves for those logins,
     # dating back more than the provided # of days
-    def _delete_old_saves(self, logins, days):
+    def _do_delete_old_saves(self, logins, days):
         for name in os.listdir(self._root_dir):
             if self._should_delete_old_saves(name, days):
-                self._delete_old_saves_in_session(self, name, logins)
+                self._delete_old_saves_in_session(name, logins)
 
     # deletes previous saves for users successfully saved during the current
     # session, whose previous backup is older than the provided # of days
     def delete_old_saves(self, days):
-        self._delete_old_saves_in_session((self._get_login_from_name(name) for name in os.listdir(self._current_dir)))
+        self._do_delete_old_saves((self._get_login_from_name(name) for name in os.listdir(self._current_dir)), days)
 
 
 # also downloads everything, but compresses it
