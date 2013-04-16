@@ -5,6 +5,7 @@ import errno
 import time
 import tarfile
 import shutil
+import re
 from StringIO import StringIO
 
 from utils import *
@@ -49,24 +50,24 @@ class BaseBackend(object):
         pass
 
     # should return the backup dir of file name for that login
-    def _get_backup_name_for_user(login):
+    def _get_backup_name_for_user(self, login):
         return login
 
     # should return the login from a backup dir or file name
     # reverse of _get_backup_name_for_user
-    def _get_login_from_name(name):
+    def _get_login_from_name(self, name):
         return name
 
     # UTC ISO-8601 time
-    UTC_TIME_PATTERN = r'%Y-%m-%dT%H%M%SZ'
+    _UTC_TIME_PATTERN = r'%Y-%m-%dT%H%M%SZ'
 
     @staticmethod
     def _generate_session_name():
-        return time.strftime(UTC_TIME_PATTERN, time.gmtime())
+        return time.strftime(BaseBackend._UTC_TIME_PATTERN, time.gmtime())
 
     @staticmethod
     def _date_from_session_name(name):
-        return time.strptime(name, UTC_TIME_PATTERN)
+        return time.strptime(name, BaseBackend._UTC_TIME_PATTERN)
 
 
 # doens't do anything, just say it was asked to save
@@ -88,7 +89,7 @@ class SimpleBackend(BaseBackend):
 
     def save(self, user, document):
         path = self._get_path(user, document)
-        self._mkdir(path)
+        self._mkdir(os.path.join(self._current_dir, path))
         prefix = os.path.join(self._root_dir, path)
         for file_name, content in document.contents.items():
             path = os.path.join(prefix, file_name)
@@ -105,7 +106,7 @@ class SimpleBackend(BaseBackend):
         self._delete(self._session_name)
 
     def _get_path(self, user, document):
-        path = os.path.join(self._current_dir, user.login, document.path if self._keep_dirs else '')
+        path = os.path.join(user.login, document.path if self._keep_dirs else '')
         return path
 
     # returns None if the current name is not a backup dir
@@ -146,7 +147,6 @@ class SimpleBackend(BaseBackend):
     # deletes previous saves for users successfully saved during the current
     # session, whose previous backup is older than the provided # of days
     def delete_old_saves(self, days):
-        current_session_dir = 
         self._delete_old_saves_in_session((self._get_login_from_name(name) for name in os.listdir(self._current_dir)))
 
 
@@ -168,14 +168,14 @@ class TarBackend(SimpleBackend):
         Log.debug('TarBackend loaded')
 
     # should return the backup dir of file name for that login
-    def _get_backup_name_for_user(login):
+    def _get_backup_name_for_user(self, login):
         return login + '.tar.' + self._format
 
     _login_from_name_regex = re.compile(r'^(.*)\.tar\.(gz|bz2)$')
 
     # should return the login from a backup dir or file name
     # reverse of _get_backup_name_for_user
-    def _get_login_from_name(name):
+    def _get_login_from_name(self, name):
         try:
             return self._login_from_name_regex.findall(name)[0][0]
         except IndexError:
