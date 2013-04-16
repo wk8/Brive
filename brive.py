@@ -63,13 +63,23 @@ def main():
                         'RESULT IN A MUCH LONGER RUNTIME, as we\'ll have to '
                         'make a lot more requests to Google\'s API, and thus '
                         'wait a lot more to prevent throttling.')
+    parser.add_argument('--delete-backups-older-than', dest='age_limit', type=int,
+                        required=False, default=0, metavar='days', help='If '
+                        'you use that option, after the backup has been '
+                        'sucessfully performed, all previous backups for users'
+                        ' that have been successfully backed-up this time, and'
+                        ' older than that many days, will be deleted')
     args = parser.parse_args()
 
     # load the logger functions
     Log.init(args.verbose, args.debug)
 
+    # some sanity checks on the input
     if (args.docs or args.list) and len(args.users) != 1:
         Log.error('Incorrect input, aborting. Please use -h for more help')
+        exit(1)
+    if args.age_limit and args.age_limit < 0:
+        Log.error('The age limit for old backups should be a positive integer')
         exit(1)
 
     backend = None
@@ -114,7 +124,11 @@ def main():
                 user.save_documents(backend, args.owned_only)
 
         Log.verbose('All successful, finalizing backend...')
-        backend.finalize()
+
+        # delete the old backups, if so asked
+        if args.age_limit:
+            backend.delete_old_saves(args.age_limit)
+
     except BaseException as ex:
         if backend:
             try:
@@ -123,7 +137,7 @@ def main():
                         'Unexpected shutdown, trying to finalize backend...'
                         + ' (you selected --keep-on-crash)'
                     )
-                    backend.finalize()
+                    backend.finalize(False)
                 else:
                     backend.clean_up()
             except:
