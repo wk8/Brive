@@ -149,6 +149,7 @@ class SimpleBackend(BaseBackend):
             os.rmdir(current_bckup)
             Log.verbose(u'Deleting empty backup dir {}'.format(current_bckup))
         except OSError as ex:
+            # ignore it if it's just not empty
             if ex.errno != errno.ENOTEMPTY:
                 raise
 
@@ -168,8 +169,8 @@ class SimpleBackend(BaseBackend):
     def delete_old_saves(self, days):
         Log.debug('About to delete old backups...')
         self._do_delete_old_saves(
-            (self._get_login_from_name(name)
-                for name in os.listdir(self._current_dir)),
+            [self._get_login_from_name(name)
+                for name in os.listdir(self._current_dir)],
             days
         )
 
