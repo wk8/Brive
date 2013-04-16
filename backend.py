@@ -107,7 +107,9 @@ class SimpleBackend(BaseBackend):
         self._delete(self._session_name)
 
     def _get_path(self, user, document):
-        path = os.path.join(user.login, document.path if self._keep_dirs else '')
+        path = os.path.join(
+            user.login, document.path if self._keep_dirs else ''
+        )
         return path
 
     # returns None if the current name is not a backup dir
@@ -127,7 +129,11 @@ class SimpleBackend(BaseBackend):
     # the prescribed # of days
     def _should_delete_old_saves(self, name, days):
         bckup_time = self._get_backup_date(name)
-        return bckup_time and time.mktime(self._date_from_session_name(self._session_name)) - time.mktime(bckup_time) > days * self._SECS_PER_DAY
+        if not bckup_time:
+            return False
+        current_session_date = self._date_from_session_name(self._session_name)
+        diff = time.mktime(current_session_date) - time.mktime(bckup_time)
+        return diff > days * self._SECS_PER_DAY
 
     def _delete_old_saves_in_session(self, session_name, logins):
         current_bckup = os.path.join(self._root_dir, session_name)
@@ -155,7 +161,11 @@ class SimpleBackend(BaseBackend):
     # deletes previous saves for users successfully saved during the current
     # session, whose previous backup is older than the provided # of days
     def delete_old_saves(self, days):
-        self._do_delete_old_saves((self._get_login_from_name(name) for name in os.listdir(self._current_dir)), days)
+        self._do_delete_old_saves(
+            (self._get_login_from_name(name)
+                for name in os.listdir(self._current_dir)),
+            days
+        )
 
 
 # also downloads everything, but compresses it
@@ -193,7 +203,9 @@ class TarBackend(SimpleBackend):
     def save(self, user, document):
         # create the tarfile if we don't have one for this user yet
         if user.login not in self._tar_files:
-            name = os.path.join(self._current_dir, self._get_backup_name_for_user(user.login))
+            name = os.path.join(
+                self._current_dir, self._get_backup_name_for_user(user.login)
+            )
             self._tar_files[user.login] = tarfile.open(
                 name, 'w:' + self._format
             )
@@ -215,4 +227,3 @@ class TarBackend(SimpleBackend):
         Log.debug('Closing tar files')
         for tar_file in self._tar_files.values():
             tar_file.close()
-

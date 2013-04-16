@@ -63,12 +63,12 @@ def main():
                         'RESULT IN A MUCH LONGER RUNTIME, as we\'ll have to '
                         'make a lot more requests to Google\'s API, and thus '
                         'wait a lot more to prevent throttling.')
-    parser.add_argument('--delete-backups-older-than', dest='age_limit', type=int,
-                        required=False, default=0, metavar='days', help='If '
-                        'you use that option, after the backup has been '
-                        'sucessfully performed, all previous backups for users'
-                        ' that have been successfully backed-up this time, and'
-                        ' older than that many days, will be deleted')
+    parser.add_argument('--delete-backups-older-than', dest='age_limit',
+                        type=int, required=False, default=0, metavar='days',
+                        help='If you use that option, after the backup has '
+                        'been sucessfully performed, all previous backups for '
+                        'users that have been successfully backed-up this time'
+                        ', and older than that many days, will be deleted')
     args = parser.parse_args()
 
     # load the logger functions
