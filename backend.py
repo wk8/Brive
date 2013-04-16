@@ -137,6 +137,7 @@ class SimpleBackend(BaseBackend):
 
     def _delete_old_saves_in_session(self, session_name, logins):
         current_bckup = os.path.join(self._root_dir, session_name)
+        Log.debug(u'Processing old session {}'.format(current_bckup))
         for name in os.listdir(current_bckup):
             login = self._get_login_from_name(name)
             if login and login in logins:
@@ -154,6 +155,10 @@ class SimpleBackend(BaseBackend):
     # deletes previous saves for those logins,
     # dating back more than the provided # of days
     def _do_delete_old_saves(self, logins, days):
+        Log.verbose(
+            u'Deleting backups older than {} days for users {}'
+            .format(days, logins)
+        )
         for name in os.listdir(self._root_dir):
             if self._should_delete_old_saves(name, days):
                 self._delete_old_saves_in_session(name, logins)
@@ -161,6 +166,7 @@ class SimpleBackend(BaseBackend):
     # deletes previous saves for users successfully saved during the current
     # session, whose previous backup is older than the provided # of days
     def delete_old_saves(self, days):
+        Log.debug('About to delete old backups...')
         self._do_delete_old_saves(
             (self._get_login_from_name(name)
                 for name in os.listdir(self._current_dir)),
