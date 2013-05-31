@@ -15,7 +15,7 @@ class SettingsFiles:
 class Utils:
 
     # if a try fails, we'll re-try it that many times at most
-    _max_nb_tries = 3
+    _max_nb_tries = 5
 
     @staticmethod
     def multiple_tries_decorator(blacklist):
