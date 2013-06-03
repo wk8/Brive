@@ -105,6 +105,7 @@ class User:
             doc_generator.add_processed_id(document.id)
         # let's save some memory
         self._cleanup()
+        backend.close_user(self)
 
     def retrieve_single_document(self, backend, doc_id):
         try:

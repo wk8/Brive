@@ -46,6 +46,14 @@ class BaseBackend(object):
     def finalize(self):
         Log.verbose(u'Finalazing session: {}'.format(self._session_name))
 
+    # called when this user is done
+    def close_user(self, user):
+        pass
+
+    # called to save that doc for that user
+    def save(self, user, document):
+        pass
+
     # called to clean up if there was an exception halfway through
     def clean_up(self):
         pass
@@ -207,16 +215,21 @@ class TarBackend(SimpleBackend):
             # no match
             return None
 
-    def save(self, user, document):
+    def _get_tarfile(self, user, create_if_doesnt_exist=True):
         # create the tarfile if we don't have one for this user yet
         if user.login not in self._tar_files:
+            if not create_if_doesnt_exist:
+                return None
             name = os.path.join(
                 self._current_dir, self._get_backup_name_for_user(user.login)
             )
             self._tar_files[user.login] = tarfile.open(
                 name, 'w:' + self._format
             )
-        tar_file = self._tar_files[user.login]
+        return self._tar_files[user.login]
+
+    def save(self, user, document):
+        tar_file = self._get_tarfile(user)
         for file_name, content in document.contents.items():
             path = self._get_path(user, document)
             path = os.path.join(path, file_name)
@@ -228,6 +241,11 @@ class TarBackend(SimpleBackend):
             tarnfo.size = file_object.len
             tarnfo.mtime = document.modified_timestamp
             tar_file.addfile(tarnfo, file_object)
+
+    def close_user(self, user):
+        tar_file = self._get_tarfile(user, False)
+        if tar_file:
+            tar_file.close()
 
     def finalize(self):
         super(TarBackend, self).finalize()
