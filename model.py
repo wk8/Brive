@@ -193,10 +193,7 @@ class DocumentContent(object):
         self._document = document
         headers, self._content = self._make_request()
         self.file_name = self._get_file_name(headers)
-        try:
-            self.size = int(headers['content-length'])
-        except KeyError:
-            self.size = None
+        self.size = None
 
     _CHUNK_SIZE = 1048576  # 1 Mb
 
