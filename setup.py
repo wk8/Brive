@@ -30,3 +30,12 @@ setup(
         "http://pyyaml.org/download/pyyaml/PyYAML-3.10.tar.gz"
     ]
 )
+
+# for some reason, the developer of streaming_httplib2 didn't include the certificates
+# of signing authorities for SSL, so here we copy the certs from httplib2
+# ugly, but eh...
+import os, sys, httplib2, streaming_httplib2, shutil
+httplib2_root = os.path.dirname(httplib2.__file__)
+streaming_httplib2_root = os.path.dirname(streaming_httplib2.__file__)
+cacerts_file_path = os.path.join(httplib2_root, 'cacerts.txt')
+shutil.copy(cacerts_file_path, streaming_httplib2_root)

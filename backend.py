@@ -237,14 +237,7 @@ class TarBackend(SimpleBackend):
             ))
             file_object = document_content.get_file_object(True)
             tarnfo = tarfile.TarInfo(path)
-            tarnfo.size =  document_content.size # 4792
-            print "final size = %d" % tarnfo.size
-            if not tarnfo.size:
-                print file_object.read()
-                print document_content.content.read()
-                raise Exception('wkpo')
-            # print document_content.size
-            # print file_object.read()
+            tarnfo.size = document_content.size
             tarnfo.mtime = document.modified_timestamp
             tar_file.addfile(tarnfo, file_object)
             file_object.close()

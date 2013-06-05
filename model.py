@@ -198,7 +198,7 @@ class DocumentContent(object):
         except KeyError:
             self.size = None
 
-    _COPY_CHUNCK_SIZE = 1048576 # 1 Mb
+    _CHUNK_SIZE = 1048576  # 1 Mb
 
     # returns a file-like object
     # if size_requested is set to True, then the self.size attribute
@@ -208,7 +208,7 @@ class DocumentContent(object):
             _, self._content = self._make_request()
             if not size_requested or self.size is not None:
                 return self._content
-            # we need to copy the whole thing to the disk, and then return it...
+            # we need to copy the whole thing to the disk, and then return it
             result = tempfile.TemporaryFile()
             self.write_to_file(result, True)
             self.size = os.fstat(result.fileno()).st_size
@@ -224,11 +224,8 @@ class DocumentContent(object):
         if self._client.streaming:
             if not content_up_to_date:
                 _, self._content = self._make_request()
-            l = 0 # TODO wkpo
-            for block in iter(lambda: self._content.read(self._COPY_CHUNCK_SIZE), ''):
-                l += len(block)
-                f.write(block)
-            print "size written %d" % l # TODO wkpo
+            for blck in iter(lambda: self._content.read(self._CHUNK_SIZE), ''):
+                f.write(blck)
         else:
             f.write(self._content)
         f.flush()
@@ -237,7 +234,7 @@ class DocumentContent(object):
     def _make_request(self):
         return self._client.request(
             self._url, brive_expected_error_status=403,
-            brive_streaming=self._client.streaming
+            brive_streaming=True
         )
 
     _split_extension_regex = re.compile(r'\.([^.]+)$')
@@ -397,13 +394,13 @@ class Document(object):
             one_preferred_found = False
             for url in urls:
                 # get the extension from the url
-                extension_matches = Document._extension_from_url_regex.findall(url)
-                if not extension_matches:
+                ext_matches = Document._extension_from_url_regex.findall(url)
+                if not ext_matches:
                     # shouldn't happen as far as I can tell
                     Log.error(u'No extension found in url: {} '.format(url)
                               + u'for document id {}'.format(self.id))
                     continue
-                extension = '.' + extension_matches[0]
+                extension = '.' + ext_matches[0]
                 Log.debug(
                     u'Found extension {} for document id {}'.format(
                         extension, self.id
@@ -448,28 +445,6 @@ class Document(object):
         return DocumentContent(
             client, url, self
         )
-
-    def _get_file_name(self, headers):
-        # get from the headers
-        content_disposition = headers['content-disposition']
-        name_matches = Document._name_from_header_regex.findall(
-            content_disposition
-        )
-        if not name_matches:
-            raise Exception(
-                u'Unexpected "content_disposition" header: {}'.format(
-                    content_disposition
-                )
-            )
-        raw_name = name_matches[0]
-        result = u'{}_{}'.format(self.title, self.id)
-        # insert the doc id in the name (just before the extension)
-        # to make sure it's unique
-        extension_matches = Document._split_extension_regex.findall(raw_name)
-        if extension_matches:
-            extension = extension_matches[0]
-            result += u'.{}'.format(extension)
-        return result
 
 
 # it's only a folder, no need to keep all the meta data

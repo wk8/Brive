@@ -48,6 +48,7 @@ class StreamingHttp(streaming_httplib2.Http):
     def use_streaming_for_next_request(self):
         self._use_streaming_for_next_request = True
 
+
 class Credentials:
 
     def __init__(self, http):
