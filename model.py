@@ -187,11 +187,16 @@ class UserFolders:
 
 class DocumentContent(object):
 
-    def __init__(self, content, file_name, size, streaming):
-        self.content = content
-        self.file_name = file_name
-        self.size = None if size is None else int(size)
-        self.streaming = streaming
+    def __init__(self, client, url, document):
+        self._client = client
+        self._url = url
+        self._document = document
+        headers, _ = self._make_request() # TODO wkpo
+        self.file_name = self._get_file_name(headers)
+        try:
+            self.size = int(headers['content-length'])
+        except KeyError:
+            self.size = None
 
     _COPY_CHUNCK_SIZE = 1048576 # 1 Mb
 
@@ -199,32 +204,67 @@ class DocumentContent(object):
     # if size_requested is set to True, then the self.size attribute
     # will be accurate after this returns
     def get_file_object(self, size_requested=False):
-        if self.streaming:
+        _, content = self._make_request()
+        if self._client.streaming:
             if not size_requested or self.size is not None:
-                return self.content
+                return content
             # we need to copy the whole thing to the disk, and then return it...
             result = tempfile.TemporaryFile()
-            self.write_to_file(result)
+            self.write_to_file(result, content)
             self.size = os.fstat(result.fileno()).st_size
             # let's rewind the file before returning it
             result.seek(0)
             return result
         else:
-            result = StringIO(self.content)
+            result = StringIO(content)
             if size_requested:
                 self.size = result.len
             return result
 
-    def write_to_file(self, f):
-        if self.streaming:
-            l = 0
-            for block in iter(lambda: self.content.read(self._COPY_CHUNCK_SIZE), ''):
+    def write_to_file(self, f, content=None):
+        if content is None:
+            _, content = self._make_request()
+        if self._client.streaming:
+            l = 0 # TODO wkpo
+            for block in iter(lambda: content.read(self._COPY_CHUNCK_SIZE), ''):
                 l += len(block)
                 f.write(block)
             print "size written %d" % l
         else:
-            f.write(self.content)
+            f.write(content)
         f.flush()
+
+    @Utils.multiple_tries_decorator(client_module.ExpiredTokenException)
+    def _make_request(self):
+        return self._client.request(
+            self._url, brive_expected_error_status=403,
+            brive_streaming=True
+        )
+
+    _split_extension_regex = re.compile(r'\.([^.]+)$')
+    _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
+
+    def _get_file_name(self, headers):
+        # get from the headers
+        content_disposition = headers['content-disposition']
+        name_matches = self._name_from_header_regex.findall(
+            content_disposition
+        )
+        if not name_matches:
+            raise Exception(
+                u'Unexpected "content_disposition" header: {}'.format(
+                    content_disposition
+                )
+            )
+        raw_name = name_matches[0]
+        # insert the doc id in the name (just before the extension)
+        # to make sure it's unique
+        result = u'{}_{}'.format(self._document.title, self._document.id)
+        extension_matches = self._split_extension_regex.findall(raw_name)
+        if extension_matches:
+            extension = extension_matches[0]
+            result += u'.{}'.format(extension)
+        return result
 
 
 class Document(object):
@@ -407,16 +447,9 @@ class Document(object):
             Document._exclusive_formats[format] = result
         return Document._exclusive_formats[format]
 
-    @Utils.multiple_tries_decorator(client_module.ExpiredTokenException)
     def _download_from_url(self, client, url):
-        headers, content = client.request(
-            url, brive_expected_error_status=403,
-            brive_streaming=True
-        )
         return DocumentContent(
-            content, self._get_file_name(headers),
-            headers.get('content-length', None),
-            client.streaming
+            client, url, self
         )
 
     def _get_file_name(self, headers):
