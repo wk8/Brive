@@ -209,6 +209,7 @@ class DocumentContent(object):
             if not size_requested or self.size is not None:
                 return self._content
             # we need to copy the whole thing to the disk, and then return it
+            Log.debug('Copying to temp file {}'.format(self.file_name))
             result = tempfile.TemporaryFile()
             self.write_to_file(result, True)
             self.size = os.fstat(result.fileno()).st_size
