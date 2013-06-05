@@ -6,7 +6,7 @@ except ImportError:
 
 setup(
     name = "Brive",
-    version = "0.3.5",
+    version = "0.3.6",
     packages = find_packages(),
 
     author = "Jean Rouge",
@@ -17,11 +17,13 @@ setup(
     url = "https://github.com/x8wk/Brive",
 
     install_requires = [
-        "PyYAML",
-        "feedparser",
-        "google-api-python-client",
+        "PyYAML==3.10",
+        "feedparser==5.1.2",
+        "google-api-python-client==1.0",
         "pyOpenSSL",
-        "python-dateutil",
+        "python-dateutil==1.5",
+        "streaming_httplib2==0.7.6",
+        "httplib2==0.7.6",
     ],
 
     dependency_links = [

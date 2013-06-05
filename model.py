@@ -7,6 +7,7 @@ import mimetypes
 import dateutil.parser
 import time
 import os
+import tempfile
 
 from oauth2client.client import AccessTokenRefreshError
 
@@ -184,6 +185,48 @@ class UserFolders:
         return {folder.id: folder for folder in folder_generator}
 
 
+class DocumentContent(object):
+
+    def __init__(self, content, file_name, size, streaming):
+        self.content = content
+        self.file_name = file_name
+        self.size = None if size is None else int(size)
+        self.streaming = streaming
+
+    _COPY_CHUNCK_SIZE = 1048576 # 1 Mb
+
+    # returns a file-like object
+    # if size_requested is set to True, then the self.size attribute
+    # will be accurate after this returns
+    def get_file_object(self, size_requested=False):
+        if self.streaming:
+            if not size_requested or self.size is not None:
+                return self.content
+            # we need to copy the whole thing to the disk, and then return it...
+            result = tempfile.TemporaryFile()
+            self.write_to_file(result)
+            self.size = os.fstat(result.fileno()).st_size
+            # let's rewind the file before returning it
+            result.seek(0)
+            return result
+        else:
+            result = StringIO(self.content)
+            if size_requested:
+                self.size = result.len
+            return result
+
+    def write_to_file(self, f):
+        if self.streaming:
+            l = 0
+            for block in iter(lambda: self.content.read(self._COPY_CHUNCK_SIZE), ''):
+                l += len(block)
+                f.write(block)
+            print "size written %d" % l
+        else:
+            f.write(self.content)
+        f.flush()
+
+
 class Document(object):
 
     _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
@@ -200,12 +243,7 @@ class Document(object):
         self._contents = None
 
     def __repr__(self):
-        result = u'Meta: {}'.format(self._meta)
-        if self._contents is None:
-            result += '\nNo contents\n'
-        else:
-            result += u'\nContents: {}\n'.format(self._contents)
-        return result
+        return u'Meta: {}'.format(self._meta)
 
     @property
     def id(self):
@@ -264,6 +302,7 @@ class Document(object):
     # already done so
     def fetch_contents(self, client, force_refresh=False):
         if self._contents is None or force_refresh:
+            self._contents = []
             self._do_fetch_contents(client)
 
     # returns the query string to use to call Google's API
@@ -278,13 +317,11 @@ class Document(object):
         if second_try:
             debug_msg += ', this time ignoring extension preferences'
         Log.debug(debug_msg)
-        self._contents = dict()
         urls = self._get_download_urls(second_try, banned_urls)
         for url in urls:
             try:
                 Log.verbose(u'Starting download from {}'.format(url))
-                file_name, content = self._download_from_url(client, url)
-                self._contents[file_name] = content
+                self._contents.append(self._download_from_url(client, url))
             except client_module.FailedRequestException:
                 Log.error(u'Download from {} for document {} failed'
                           .format(url, self.id))
@@ -372,43 +409,15 @@ class Document(object):
 
     @Utils.multiple_tries_decorator(client_module.ExpiredTokenException)
     def _download_from_url(self, client, url):
-        try:
-            headers, content = client.request(
-                url, brive_expected_error_status=403
-            )
-            self._check_download_integrity(headers, content)
-            return self._get_file_name(headers), content
-        except (KeyError, client_module.ExpectedFailedRequestException):
-            # token expired, or an "User Rate Limit Exceeded" error,
-            raise ExpiredTokenException()
-
-    def _check_download_integrity(self, headers, content):
-        Log.debug(u'Checking download integrity for doc id {}'.format(self.id))
-        success, message = True, None
-        # content length
-        content_length = int(headers.get('content-length', 0))
-        if content_length and content_length != StringIO(content).len:
-            success = False
-            message = u'expected length {} VS actual length {}'.format(
-                content_length, len(content)
-            )
-        # md5 check
-        expected_sum = self.get_meta('md5Checksum')
-        if success and expected_sum:
-            md5_object = md5.new()
-            md5_object.update(content)
-            actual_sum = md5_object.hexdigest()
-            if expected_sum != actual_sum:
-                success = False
-                message = u'expected md5 sum {} VS actual {}'.format(
-                    expected_sum, actual_sum
-                )
-        if not success:
-            err_message = u'Failed to download document id {}: {}'.format(
-                self.id, message
-            )
-            Log.verbose(err_message)
-            raise Exception(err_message)
+        headers, content = client.request(
+            url, brive_expected_error_status=403,
+            brive_streaming=True
+        )
+        return DocumentContent(
+            content, self._get_file_name(headers),
+            headers.get('content-length', None),
+            client.streaming
+        )
 
     def _get_file_name(self, headers):
         # get from the headers

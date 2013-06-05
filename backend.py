@@ -6,7 +6,6 @@ import time
 import tarfile
 import shutil
 import re
-from StringIO import StringIO
 
 from utils import *
 import configuration
@@ -100,13 +99,13 @@ class SimpleBackend(BaseBackend):
         path = self._get_path(user, document)
         self._mkdir(os.path.join(self._session_name, path))
         prefix = os.path.join(self._current_dir, path)
-        for file_name, content in document.contents.items():
-            path = os.path.join(prefix, file_name)
+        for document_content in document.contents:
+            path = os.path.join(prefix, document_content.file_name)
             Log.debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))
             f = open(path, 'w')
-            f.write(content)
+            document_content.write_to_file(f)
             f.close()
 
     def clean_up(self):
@@ -230,17 +229,25 @@ class TarBackend(SimpleBackend):
 
     def save(self, user, document):
         tar_file = self._get_tarfile(user)
-        for file_name, content in document.contents.items():
+        for document_content in document.contents:
             path = self._get_path(user, document)
-            path = os.path.join(path, file_name)
+            path = os.path.join(path, document_content.file_name)
             Log.debug(u'Writing {}\'s {} to {}'.format(
                 user.login, document.title, path
             ))
-            file_object = StringIO(content)
+            file_object = document_content.get_file_object(True)
             tarnfo = tarfile.TarInfo(path)
-            tarnfo.size = file_object.len
+            tarnfo.size =  document_content.size # 4792
+            print "final size = %d" % tarnfo.size
+            if not tarnfo.size:
+                print file_object.read()
+                print document_content.content.read()
+                raise Exception('wkpo')
+            # print document_content.size
+            # print file_object.read()
             tarnfo.mtime = document.modified_timestamp
             tar_file.addfile(tarnfo, file_object)
+            file_object.close()
 
     def close_user(self, user):
         tar_file = self._get_tarfile(user, False)

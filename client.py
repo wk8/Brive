@@ -14,7 +14,8 @@ class ExpectedFailedRequestException(Exception):
 
 import feedparser
 
-from httplib2 import Http
+import streaming_httplib2
+from httplib2 import Http as StandardHttp
 from OpenSSL.crypto import Error as CryptoError
 from oauth2client.client import \
     SignedJwtAssertionCredentials, AccessTokenRefreshError
@@ -24,6 +25,28 @@ from model import User, Document, Folder
 from utils import *
 from configuration import Configuration
 
+
+# just reverts to default httplib2 behavior unless
+# explicitely required (comes in handy to still use
+# Google's code with streaming_httplib2.Http objects)
+class StreamingHttp(streaming_httplib2.Http):
+
+    def __init__(self, *args, **kwargs):
+        self._use_streaming_for_next_request = False
+        super(StreamingHttp, self).__init__(*args, **kwargs)
+
+    def request(self, *args, **kwargs):
+        headers, content = super(StreamingHttp, self).request(*args, **kwargs)
+        if self._use_streaming_for_next_request:
+            self._use_streaming_for_next_request = False
+        else:
+            content = content.read()
+        return (headers, content)
+
+    # should be a keyword arg, but that doesn't sit too well
+    # with google's wrapping...
+    def use_streaming_for_next_request(self):
+        self._use_streaming_for_next_request = True
 
 class Credentials:
 
@@ -71,7 +94,8 @@ class Client:
 
     # FIXME: check extended scopes, and see that we fail,
     # otherwise issue a warning
-    def __init__(self):
+    def __init__(self, streaming):
+        self._streaming = streaming
         self._reset()
         self._creds = Credentials(self._http)
         self._domain, admin_login, users_api_endpoint, \
@@ -98,6 +122,10 @@ class Client:
 
     def build_service(self, service_name, api_version):
         return build(service_name, api_version, self._http)
+
+    @property
+    def streaming(self):
+        return self._streaming
 
     @property
     def drive_service(self):
@@ -151,12 +179,16 @@ class Client:
 
     @Utils.multiple_tries_decorator(ExpectedFailedRequestException)
     def request(self, *args, **kwargs):
+        # pop a few internal kwargs
         expected_error_status = kwargs.pop('brive_expected_error_status', [])
         if not isinstance(expected_error_status, list):
             expected_error_status = [expected_error_status]
+        if kwargs.pop('brive_streaming', False) and self._streaming:
+            self._http.use_streaming_for_next_request()
+
         result = self._http.request(*args, **kwargs)
         headers = result[0]
-        status = int(headers['status'])
+        status = int(headers.get('status', 0))
         if status != 200:
             if status in expected_error_status:
                 raise ExpectedFailedRequestException(status)
@@ -172,7 +204,10 @@ class Client:
         return '{}@{}'.format(user.login, self._domain)
 
     def _reset(self):
-        self._http = Http()
+        if self._streaming:
+            self._http = StreamingHttp()
+        else:
+            self._http = StandardHttp()
 
 
 class UserDocumentsGenerator:

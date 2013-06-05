@@ -69,6 +69,13 @@ def main():
                         'been sucessfully performed, all previous backups for '
                         'users that have been successfully backed-up this time'
                         ', and older than that many days, will be deleted')
+    parser.add_argument('--streaming-http', dest='streaming_http',
+                        action='store_const', const=True, default=False,
+                        help='If activated, Brive will use streamed HTTP '
+                        'requests. This might be necessary if you try to '
+                        'backup huge documents on a machine with little RAM. '
+                        'Please do note that this might also have a negative '
+                        'impact on performance if you use compression.')
     args = parser.parse_args()
 
     # load the logger functions
@@ -98,7 +105,7 @@ def main():
         Configuration.set('formats_exclusive', exclusive_formats)
 
         # down to business
-        client = Client()
+        client = Client(args.streaming_http)
         users = [User(login, client) for login in args.users] if args.users \
             else client.users
 
