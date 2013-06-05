@@ -13,6 +13,7 @@ class ExpectedFailedRequestException(Exception):
     pass
 
 import feedparser
+from StringIO import StringIO
 
 import streaming_httplib2
 from httplib2 import Http as StandardHttp
@@ -39,6 +40,10 @@ class StreamingHttp(streaming_httplib2.Http):
         headers, content = super(StreamingHttp, self).request(*args, **kwargs)
         if self._use_streaming_for_next_request:
             self._use_streaming_for_next_request = False
+            # there's a weird bug in streaming_httplib2: sometimes, for very
+            # small files, it returns the content directly as a string...
+            if not hasattr(content, 'read'):
+                content = StringIO(content)
         else:
             content = content.read()
         return (headers, content)
