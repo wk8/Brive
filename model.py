@@ -442,9 +442,13 @@ class Document(object):
         return Document._exclusive_formats[format]
 
     def _download_from_url(self, client, url):
-        return DocumentContent(
-            client, url, self
-        )
+        try:
+            return DocumentContent(
+                client, url, self
+            )
+        except (KeyError, client_module.ExpectedFailedRequestException):
+            # token expired, or an "User Rate Limit Exceeded" error,
+            raise ExpiredTokenException()
 
 
 # it's only a folder, no need to keep all the meta data
