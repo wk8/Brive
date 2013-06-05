@@ -210,19 +210,20 @@ class DocumentContent(object):
                 return self._content
             # we need to copy the whole thing to the disk, and then return it...
             result = tempfile.TemporaryFile()
-            self.write_to_file(result)
+            self.write_to_file(result, True)
             self.size = os.fstat(result.fileno()).st_size
             # let's rewind the file before returning it
             result.seek(0)
-            return result
         else:
             result = StringIO(self._content)
             if size_requested:
                 self.size = result.len
-            return result
+        return result
 
-    def write_to_file(self, f):
+    def write_to_file(self, f, content_up_to_date=False):
         if self._client.streaming:
+            if not content_up_to_date:
+                _, self._content = self._make_request()
             l = 0 # TODO wkpo
             for block in iter(lambda: self._content.read(self._COPY_CHUNCK_SIZE), ''):
                 l += len(block)
@@ -236,7 +237,7 @@ class DocumentContent(object):
     def _make_request(self):
         return self._client.request(
             self._url, brive_expected_error_status=403,
-            brive_streaming=True
+            brive_streaming=self._client.streaming
         )
 
     _split_extension_regex = re.compile(r'\.([^.]+)$')
