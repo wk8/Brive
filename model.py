@@ -191,7 +191,7 @@ class DocumentContent(object):
         self._client = client
         self._url = url
         self._document = document
-        headers, _ = self._make_request() # TODO wkpo
+        headers, self._content = self._make_request()
         self.file_name = self._get_file_name(headers)
         try:
             self.size = int(headers['content-length'])
@@ -204,34 +204,32 @@ class DocumentContent(object):
     # if size_requested is set to True, then the self.size attribute
     # will be accurate after this returns
     def get_file_object(self, size_requested=False):
-        _, content = self._make_request()
         if self._client.streaming:
+            _, self._content = self._make_request()
             if not size_requested or self.size is not None:
-                return content
+                return self._content
             # we need to copy the whole thing to the disk, and then return it...
             result = tempfile.TemporaryFile()
-            self.write_to_file(result, content)
+            self.write_to_file(result)
             self.size = os.fstat(result.fileno()).st_size
             # let's rewind the file before returning it
             result.seek(0)
             return result
         else:
-            result = StringIO(content)
+            result = StringIO(self._content)
             if size_requested:
                 self.size = result.len
             return result
 
-    def write_to_file(self, f, content=None):
-        if content is None:
-            _, content = self._make_request()
+    def write_to_file(self, f):
         if self._client.streaming:
             l = 0 # TODO wkpo
-            for block in iter(lambda: content.read(self._COPY_CHUNCK_SIZE), ''):
+            for block in iter(lambda: self._content.read(self._COPY_CHUNCK_SIZE), ''):
                 l += len(block)
                 f.write(block)
-            print "size written %d" % l
+            print "size written %d" % l # TODO wkpo
         else:
-            f.write(content)
+            f.write(self._content)
         f.flush()
 
     @Utils.multiple_tries_decorator(client_module.ExpiredTokenException)
@@ -269,9 +267,7 @@ class DocumentContent(object):
 
 class Document(object):
 
-    _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
-    _split_extension_regex = re.compile(r'\.([^.]+)$')
-    _extension_from_url = re.compile(r'exportFormat=([^&]+)$')
+    _extension_from_url_regex = re.compile(r'exportFormat=([^&]+)$')
 
     _folder_mime_type = r'application/vnd.google-apps.folder'
 
@@ -400,7 +396,7 @@ class Document(object):
             one_preferred_found = False
             for url in urls:
                 # get the extension from the url
-                extension_matches = Document._extension_from_url.findall(url)
+                extension_matches = Document._extension_from_url_regex.findall(url)
                 if not extension_matches:
                     # shouldn't happen as far as I can tell
                     Log.error(u'No extension found in url: {} '.format(url)
