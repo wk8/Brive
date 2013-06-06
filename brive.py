@@ -105,7 +105,7 @@ def main():
         Configuration.set('formats_exclusive', exclusive_formats)
 
         # down to business
-        client = Client(args.streaming_http)
+        client = Client(args.keep_dirs, args.streaming_http)
         users = [User(login, client) for login in args.users] if args.users \
             else client.users
 

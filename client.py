@@ -100,7 +100,8 @@ class Client:
 
     # FIXME: check extended scopes, and see that we fail,
     # otherwise issue a warning
-    def __init__(self, streaming):
+    def __init__(self, keep_dirs, streaming):
+        self._keep_dirs = keep_dirs
         self._streaming = streaming
         self._reset()
         self._creds = Credentials(self._http)
@@ -112,7 +113,7 @@ class Client:
                               'google_api_drive_name',
                               'google_api_drive_version',
                               not_null=True)
-        self._admin = User(admin_login, self)
+        self._admin = User(admin_login, self, False)
         self._users_api_endpoint = \
             users_api_endpoint.format(domain_name=self._domain)
         Log.debug('Client loaded')
@@ -143,7 +144,8 @@ class Client:
         try:
             self.authorize(self._admin)
             user_logins = self._get_all_user_logins()
-            result = [User(login, self) for login in user_logins]
+            result = [User(login, self, self._keep_dirs)
+                      for login in user_logins]
             Log.verbose(u'Found users: {}'.format(result))
             return result
         except AccessTokenRefreshError as oauth_error:

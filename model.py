@@ -19,14 +19,14 @@ from configuration import Configuration
 
 class User:
 
-    def __init__(self, login, client):
+    def __init__(self, login, client, need_folders=True):
         # check that we have only the login, not the full email address
         if '@' in login:
             login = login.partition('@')[0]
         self._login = login
         self._client = client
         self._documents = None
-        self._folders = UserFolders(self)
+        self._folders = UserFolders(self) if need_folders else None
         self._black_listed_ids = []
 
     def __repr__(self):
