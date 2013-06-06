@@ -199,10 +199,13 @@ class Client:
             if status in expected_error_status:
                 raise ExpectedFailedRequestException(status)
             else:
+                content = result[1]
+                if self._streaming:
+                    content = content.read()
                 raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
                     .format(status, headers)
-                    + u'and content: {})'.format(result[1].decode('utf8'))
+                    + u'and content: {})'.format(content.decode('utf8'))
                 )
         return result
 
