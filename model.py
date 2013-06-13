@@ -222,6 +222,15 @@ class DocumentContent(object):
         if self._client.streaming:
             if not content_up_to_date:
                 _, self._content = self._make_request()
+            # there's a weird bug in streaming_httplib2: sometimes, for very
+            # small files, it returns the content directly as a string...
+            if not hasattr(self._content, 'read'):
+                self._content = StringIO(self._content)
+                Log.error(
+                    u'Unexpected string instead of file-like object when '
+                    u'requesting doc_id %s (length: %d)' % (self._document.id,
+                    self._content.len)
+                )
             for blck in iter(lambda: self._content.read(self._CHUNK_SIZE), ''):
                 f.write(blck)
         else:

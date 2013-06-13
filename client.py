@@ -13,7 +13,6 @@ class ExpectedFailedRequestException(Exception):
     pass
 
 import feedparser
-from StringIO import StringIO
 
 import streaming_httplib2
 from httplib2 import Http as StandardHttp
@@ -33,25 +32,19 @@ from configuration import Configuration
 class StreamingHttp(streaming_httplib2.Http):
 
     def __init__(self, *args, **kwargs):
-        self._use_streaming_for_next_request = False
+        self._use_streaming = False
         super(StreamingHttp, self).__init__(*args, **kwargs)
 
     def request(self, *args, **kwargs):
         headers, content = super(StreamingHttp, self).request(*args, **kwargs)
-        if self._use_streaming_for_next_request:
-            self._use_streaming_for_next_request = False
-            # there's a weird bug in streaming_httplib2: sometimes, for very
-            # small files, it returns the content directly as a string...
-            if not hasattr(content, 'read'):
-                content = StringIO(content)
-        else:
+        if not self._use_streaming:
             content = content.read()
         return (headers, content)
 
     # should be a keyword arg, but that doesn't sit too well
     # with google's wrapping...
-    def use_streaming_for_next_request(self):
-        self._use_streaming_for_next_request = True
+    def use_streaming(self, value=True):
+        self._use_streaming = value
 
 
 class Credentials:
@@ -192,9 +185,12 @@ class Client:
         if not isinstance(expected_error_status, list):
             expected_error_status = [expected_error_status]
         if kwargs.pop('brive_streaming', False) and self._streaming:
-            self._http.use_streaming_for_next_request()
+            self._http.use_streaming()
 
         result = self._http.request(*args, **kwargs)
+
+        if self._streaming:
+            self._http.use_streaming(False)
         headers = result[0]
         status = int(headers.get('status', 0))
         if status != 200:
