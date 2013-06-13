@@ -31,20 +31,29 @@ from configuration import Configuration
 # Google's code with streaming_httplib2.Http objects)
 class StreamingHttp(streaming_httplib2.Http):
 
-    def __init__(self, *args, **kwargs):
-        self._use_streaming = False
-        super(StreamingHttp, self).__init__(*args, **kwargs)
+    # incredibly ugly hack, but only way to do that with google's
+    # wrapping sitting on top of our class...
+    _STREAMING_MARKER = '-STREAMING'
+    _STREAMING_MARKER_LENGTH = len(_STREAMING_MARKER)
 
-    def request(self, *args, **kwargs):
-        headers, content = super(StreamingHttp, self).request(*args, **kwargs)
-        if not self._use_streaming:
+    @classmethod
+    def encode_streaming_method(cls, method):
+        return '%s%s' % (method, cls._STREAMING_MARKER)
+
+    @classmethod
+    def _decode_streaming_method(cls, method):
+        if method[-cls._STREAMING_MARKER_LENGTH:] == cls._STREAMING_MARKER:
+            return method[:-cls._STREAMING_MARKER_LENGTH]
+        return None
+
+    def request(self, uri, method='GET', *args, **kwargs):
+        decoded_method = self._decode_streaming_method(method)
+        if decoded_method:
+            method = decoded_method
+        headers, content = super(StreamingHttp, self).request(uri, method, *args, **kwargs)
+        if decoded_method is None:
             content = content.read()
         return (headers, content)
-
-    # should be a keyword arg, but that doesn't sit too well
-    # with google's wrapping...
-    def use_streaming(self, value=True):
-        self._use_streaming = value
 
 
 class Credentials:
@@ -179,18 +188,16 @@ class Client:
         return result
 
     @Utils.multiple_tries_decorator(ExpectedFailedRequestException)
-    def request(self, *args, **kwargs):
+    def request(self, uri, method='GET', *args, **kwargs):
         # pop a few internal kwargs
         expected_error_status = kwargs.pop('brive_expected_error_status', [])
         if not isinstance(expected_error_status, list):
             expected_error_status = [expected_error_status]
         if kwargs.pop('brive_streaming', False) and self._streaming:
-            self._http.use_streaming()
+            method = self._http.encode_streaming_method(method)
 
-        result = self._http.request(*args, **kwargs)
+        result = self._http.request(uri, method, *args, **kwargs)
 
-        if self._streaming:
-            self._http.use_streaming(False)
         headers = result[0]
         status = int(headers.get('status', 0))
         if status != 200:
