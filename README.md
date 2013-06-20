@@ -46,7 +46,7 @@ Now we need to grant the necessary access rights to this application on your dom
 <li> Open your domain's control panel (https://www.google.com/a/cpanel/%your-domain-name%) </li>
 <li> Click 'More controls' at the bottom of the window, then 'Security'. In the new screen that appears, click 'Advanced settings', then 'Manage third parties party OAuth Client access' in the 'Authentication' section </li>
 <li> In the 'Client Name' field, report the 'Client ID' value you saved from step 10 above </li>
-<li> In the 'One or More API Scopes', please copy and paste:<br/>
+<li> In the 'One or More API Scopes' field, please copy and paste:<br/>
 <code>https://apps-apis.google.com/a/feeds/user/,https://www.googleapis.com/auth/drive.readonly</code><br/>
 (the first one allows your application to get the list of all users on your domain, the second one to fetch the data from your users' Drive accounts), then click 'Authorize' </li>
 </ol>
