@@ -32,7 +32,7 @@ We will now create your private Google App application : log into your Google Ap
 <li> Create an API project in the Google APIs Console: https://code.google.com/apis/console/b/0/ </li>
 <li> Select the 'Services' tab in your API project, and enable the Drive API </li>
 <li> Select the 'API Access' tab in your API project, and click 'Create an OAuth 2.0 client ID' </li>
-<li> In the 'Branding Information section', provide a name for your application (whatever you want), and click 'Next'. Providing a product logo is optional. </li>
+<li> In the 'Branding Information' section, provide a name for your application (whatever you want), and click 'Next'. Providing a product logo is optional. </li>
 <li> In the Client ID Settings section, select 'Service account' for the 'Application type', then click 'Create client ID' </li>
 <li> Report your private key's password (should be 'notascret') to the 'google > app > p12_secret' entry of your `settings.yml` file </li>
 <li> Click 'Download private key', save the file in Brive's directory, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file </li>
@@ -44,11 +44,11 @@ We will now create your private Google App application : log into your Google Ap
 Now we need to grant the necessary access rights to this application on your domain:
 <ol>
 <li> Open your domain's control panel (https://www.google.com/a/cpanel/%your-domain-name%) </li>
-<li> Go to the 'Advanced tools' tab, and click the 'Manage third parties party OAuth Client access' link in the 'Authentication' section </li>
+<li> Click 'More controls' at the bottom of the window, then 'Security'. In the new screen that appears, click 'Advanced settings', then 'Manage third parties party OAuth Client access' in the 'Authentication' section </li>
 <li> In the 'Client Name' field, report the 'Client ID' value you saved from step 10 above </li>
 <li> In the 'One or More API Scopes', please copy and paste:<br/>
 <code>https://apps-apis.google.com/a/feeds/user/,https://www.googleapis.com/auth/drive.readonly</code><br/>
-(the first one allows your application to get the list of all users on your domain, the second one to fetch the data from your users' Drive accounts) </li>
+(the first one allows your application to get the list of all users on your domain, the second one to fetch the data from your users' Drive accounts), then click 'Authorize' </li>
 </ol>
 
 <b>Optional:</b> feel free to edit the three 'backend' entries in your `settings.yml` file; please read the comments there.
