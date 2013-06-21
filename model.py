@@ -41,15 +41,16 @@ class User:
         return self._folders
 
     @property
-    def documents(self):
-        if self._documents is None:
-            self._fetch_docs_list()
-        return self._documents
+    def document_generator(self):
+        # let's filter folders out
+        return client_module.UserDocumentsGenerator(
+            self, Document.get_folder_query()
+        )
 
     # just the doc ids
     @property
     def document_ids(self):
-        return [doc.id for doc in self.documents]
+        return [doc.id for doc in self.document_generator]
 
     @property
     def drive_service(self):
@@ -59,10 +60,7 @@ class User:
 
     def save_documents(self, backend, owned_only):
         Log.verbose(u'Processing docs for {}'.format(self.login))
-        # let's filter folders out
-        doc_generator = client_module.UserDocumentsGenerator(
-            self, Document.get_folder_query()
-        )
+        doc_generator = self.document_generator
         for document in doc_generator:
             if not backend.need_to_fetch_contents(self, document)\
                     or (owned_only and not document.is_owned):
