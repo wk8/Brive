@@ -50,7 +50,9 @@ class StreamingHttp(streaming_httplib2.Http):
         decoded_method = self._decode_streaming_method(method)
         if decoded_method:
             method = decoded_method
-        headers, content = super(StreamingHttp, self).request(uri, method, *args, **kwargs)
+        headers, content = super(StreamingHttp, self).request(
+            uri, method, *args, **kwargs
+        )
         if decoded_method is None:
             content = content.read()
         return (headers, content)
@@ -205,7 +207,8 @@ class Client:
                 raise ExpectedFailedRequestException(status)
             else:
                 content = result[1]
-                if self._streaming:
+                if hastattr(content, 'read'):
+                    # a streamed content!
                     content = content.read()
                 raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
