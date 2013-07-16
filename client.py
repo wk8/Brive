@@ -207,7 +207,7 @@ class Client:
                 raise ExpectedFailedRequestException(status)
             else:
                 content = result[1]
-                if hastattr(content, 'read'):
+                if hasattr(content, 'read'):
                     # a streamed content!
                     content = content.read()
                 raise FailedRequestException(
