@@ -234,7 +234,9 @@ class DocumentContent(object):
         )
 
     _split_extension_regex = re.compile(r'\.([^.]+)$')
-    _name_from_header_regex = re.compile(r'^attachment;\s*filename="([^"]+)"')
+    _name_from_header_regex = re.compile(
+        r'^attachment;\s*filename(?:="|\*=[A-Za-z0-9-]+\'\')([^"]+)"'
+    )
 
     def _get_file_name(self, headers):
         # get from the headers
