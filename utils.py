@@ -15,10 +15,17 @@ class SettingsFiles:
 class Utils:
 
     # if a try fails, we'll re-try it that many times at most
-    _max_nb_tries = 5
+    _MAX_NB_TRIES = 10
+    # waiting time at the 1st failure (in seconds)
+    _INITIAL_BACKOFF = 1
+    # by how much to multiply the backoff waiting time at every try
+    _BACKOFF_FACTOR = 2
 
     @staticmethod
-    def multiple_tries_decorator(blacklist):
+    def multiple_tries_decorator(blacklist=None,
+        max_nb_tries=_MAX_NB_TRIES,
+        initial_backoff=_INITIAL_BACKOFF,
+        backoff_factor=_BACKOFF_FACTOR):
         if blacklist is None:
             blacklist = []
         elif type(blacklist) is not list:
@@ -27,13 +34,16 @@ class Utils:
         def internal_decorator(function):
             def result(*args, **kwargs):
                 return Utils._multiple_tries_rec(
-                    function, blacklist, 1, *args, **kwargs
+                    function, blacklist, 1, args, kwargs,
+                    max_nb_tries, initial_backoff, backoff_factor
                 )
             return result
         return internal_decorator
 
     @staticmethod
-    def _multiple_tries_rec(function, blacklist, try_nb, *args, **kwargs):
+    def _multiple_tries_rec(
+        function, blacklist, try_nb, args, kwargs,
+        max_nb_tries, current_backoff, backoff_factor):
         try:
             return function(*args, **kwargs)
         except Exception as ex:
@@ -42,14 +52,16 @@ class Utils:
                     u'Caught a blacklisted {}, re-throwing'.format(type(ex))
                 )
                 raise
-            if try_nb >= Utils._max_nb_tries:
+            if try_nb >= max_nb_tries:
                 Log.debug('Too many tries, re-throwing')
                 raise
-            Log.debug(u'Attempt # {} calling {} failed, re-trying...'
-                      .format(try_nb, function.__name__))
+            Log.debug(u'Attempt # {} calling {} failed, sleeping {}s '
+                      .format(try_nb, function.__name__, current_backoff)
+                      + 'then re-trying...')
+            time.sleep(current_backoff)
             return Utils._multiple_tries_rec(
-                function, blacklist, try_nb + 1, *args, **kwargs
-            )
+                function, blacklist, try_nb + 1, args, kwargs,
+                max_nb_tries, current_backoff * backoff_factor, backoff_factor)
 
 
 class Log:

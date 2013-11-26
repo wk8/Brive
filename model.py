@@ -120,11 +120,12 @@ class User:
 
     # NOTE: Google's API doesn't like to get a lot of such calls,
     # so use defensively...
-    @Utils.multiple_tries_decorator(None)
-    def retrieve_single_document_meta(self, doc_id):
+    @Utils.multiple_tries_decorator()
+    def retrieve_single_document_meta(self, doc_id, is_folder=False):
         try:
             meta = self.drive_service.files().get(fileId=doc_id).execute()
-            return Document(meta, self.folders)
+            klass = Folder if is_folder else Document
+            return klass(meta, self.folders)
         except AccessTokenRefreshError:
             # most likely 403
             raise client_module.ExpiredTokenException
@@ -163,7 +164,7 @@ class UserFolders:
             # the root has ID None by convention
             return ''
         self._do_init()
-        folder = self._folders[folder_id]
+        folder = self._get_folder_from_id(folder_id)
         parent_path = self.get_path(folder.parent_id)
         parent_path += os.sep if parent_path else ''
         return parent_path + folder.title
@@ -181,6 +182,18 @@ class UserFolders:
             self._user, Document.get_folder_query(False), Folder
         )
         return {folder.id: folder for folder in folder_generator}
+
+    # sometimes a folder could have been created during the current run,
+    # in which case we don't have it in the cache
+    def _get_folder_from_id(self, folder_id):
+        try:
+            return self._folders[folder_id]
+        except KeyError:
+            Log.debug(u'Could not find folder {} in cache, trying to fetch it'
+                .format(folder_id))
+            folder = self._user.retrieve_single_document_meta(folder_id, True)
+            self._folders[folder_id] = folder
+            return folder
 
 
 class DocumentContent(object):
