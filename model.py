@@ -459,7 +459,7 @@ class Document(object):
             )
         except (KeyError, client_module.ExpectedFailedRequestException):
             # token expired, or an "User Rate Limit Exceeded" error,
-            raise ExpiredTokenException()
+            raise client_module.ExpiredTokenException
 
 
 # it's only a folder, no need to keep all the meta data
