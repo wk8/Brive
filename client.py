@@ -14,6 +14,7 @@ class ExpectedFailedRequestException(Exception):
 
 import feedparser
 
+import re
 import streaming_httplib2
 from httplib2 import Http as StandardHttp
 from OpenSSL.crypto import Error as CryptoError
@@ -142,14 +143,16 @@ class Client:
     def drive_service(self):
         return self.build_service(self._drv_svc_name, self._drv_svc_version)
 
-    # retrieve the list of all users on the domain
-    @property
-    def users(self):
+    def users(self, logins=None, login_regex_pattern=None):
         try:
             self.authorize(self._admin)
-            user_logins = self._get_all_user_logins()
+            if not logins:
+                logins = self._get_all_user_logins()
+            if login_regex_pattern:
+                regex = re.compile(login_regex_pattern)
+                logins = filter(regex.search, logins)
             result = [User(login, self, self._keep_dirs)
-                      for login in user_logins]
+                      for login in logins]
             Log.verbose(u'Found users: {}'.format(result))
             return result
         except AccessTokenRefreshError as oauth_error:

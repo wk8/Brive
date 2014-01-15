@@ -23,9 +23,9 @@ class Utils:
 
     @staticmethod
     def multiple_tries_decorator(blacklist=None,
-        max_nb_tries=_MAX_NB_TRIES,
-        initial_backoff=_INITIAL_BACKOFF,
-        backoff_factor=_BACKOFF_FACTOR):
+                                 max_nb_tries=_MAX_NB_TRIES,
+                                 initial_backoff=_INITIAL_BACKOFF,
+                                 backoff_factor=_BACKOFF_FACTOR):
         if blacklist is None:
             blacklist = []
         elif type(blacklist) is not list:
@@ -42,8 +42,8 @@ class Utils:
 
     @staticmethod
     def _multiple_tries_rec(
-        function, blacklist, try_nb, args, kwargs,
-        max_nb_tries, current_backoff, backoff_factor):
+            function, blacklist, try_nb, args, kwargs,
+            max_nb_tries, current_backoff, backoff_factor):
         try:
             return function(*args, **kwargs)
         except Exception as ex:

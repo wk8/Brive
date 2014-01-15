@@ -22,6 +22,11 @@ def main():
     parser.add_argument('-u', dest='users', metavar='login',
                         type=str, nargs='+', default=[],
                         help='Custom logins instead of all of them')
+    parser.add_argument('--user-regex', dest='user_regex', metavar='regex',
+                        type=str, nargs=1, default=None, help='If you want to '
+                        'backup a given set of users, you can do so by '
+                        'specifying a regex that those users\' logins must '
+                        'match')
     parser.add_argument('--docs', dest='docs', metavar='doc_id',
                         type=str, nargs='+', default=None,
                         help='Custom doc ids to retrieve (in which case you'
@@ -88,6 +93,9 @@ def main():
     if args.age_limit and args.age_limit < 0:
         Log.error('The age limit for old backups should be a positive integer')
         exit(1)
+    if args.users and args.user_regex:
+        Log.error('The options -u and --user-regex cannot be used together')
+        exit(1)
 
     backend = None
     try:
@@ -106,8 +114,8 @@ def main():
 
         # down to business
         client = Client(args.keep_dirs, args.streaming_http)
-        users = [User(login, client) for login in args.users] if args.users \
-            else client.users
+        user_regex = args.user_regex[0] if args.user_regex else None
+        users = client.users(args.users, user_regex)
 
         if args.user_list:
             # just display the list of all the users, then exit

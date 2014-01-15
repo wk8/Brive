@@ -190,7 +190,7 @@ class UserFolders:
             return self._folders[folder_id]
         except KeyError:
             Log.debug(u'Could not find folder {} in cache, trying to fetch it'
-                .format(folder_id))
+                      .format(folder_id))
             folder = self._user.retrieve_single_document_meta(folder_id, True)
             self._folders[folder_id] = folder
             return folder
