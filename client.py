@@ -37,6 +37,12 @@ class StreamingHttp(streaming_httplib2.Http):
     _STREAMING_MARKER = '-STREAMING'
     _STREAMING_MARKER_LENGTH = len(_STREAMING_MARKER)
 
+    def __init__(self, *args, **kwargs):
+        super(StreamingHttp, self).__init__(*args, **kwargs)
+        # we need to keep track of redirections here because otherwise
+        # the 'streaming' flag will be lost when following a redirection
+        self._redirection_level = 0
+
     @classmethod
     def encode_streaming_method(cls, method):
         return '%s%s' % (method, cls._STREAMING_MARKER)
@@ -51,10 +57,14 @@ class StreamingHttp(streaming_httplib2.Http):
         decoded_method = self._decode_streaming_method(method)
         if decoded_method:
             method = decoded_method
-        headers, content = super(StreamingHttp, self).request(
-            uri, method, *args, **kwargs
-        )
-        if decoded_method is None:
+        try:
+            self._redirection_level += 1
+            headers, content = super(StreamingHttp, self).request(
+                uri, method, *args, **kwargs
+            )
+        finally:
+            self._redirection_level -= 1
+        if decoded_method is None and self._redirection_level == 0:
             content = content.read()
         return (headers, content)
 
