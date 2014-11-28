@@ -60,10 +60,10 @@ class Configuration:
     def merge(self, name, value):
         instance = Configuration.instance
         if name in instance._data:
-            current = instance._data
+            current = instance._data[name]
             if type(value) is list and type(current) is list:
                 Configuration.set(
-                    name, new_list + list(set(current) - set(value))
+                    name, list(set(current) - set(value))
                 )
             elif type(value) is dict and type(current) is dict:
                 Configuration.set(name, current.update(value))
