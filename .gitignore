@@ -4,6 +4,8 @@
 settings.yml
 *.p12
 
-build/
-Brive.egg-info
-dist
+/build/
+/Brive.egg-info
+/dist/
+/save/
+/venv/

@@ -17,7 +17,7 @@ from apiclient.errors import HttpError
 from configuration import Configuration
 
 
-class User:
+class User(object):
 
     def __init__(self, login, client, need_folders=True):
         # check that we have only the login, not the full email address
@@ -62,7 +62,7 @@ class User:
         Log.verbose(u'Processing docs for {}'.format(self.login))
         doc_generator = self.document_generator
         for document in doc_generator:
-            if not backend.need_to_fetch_contents(self, document)\
+            if not backend.need_to_fetch_contents(self, document) \
                     or (owned_only and not document.is_owned):
                 # mark as done, and get to the next one
                 Log.verbose(
@@ -153,7 +153,7 @@ class User:
 
 
 # keeps tracks of the user's folders, and caches the paths to them
-class UserFolders:
+class UserFolders(object):
 
     def __init__(self, user):
         self._user = user
@@ -373,8 +373,8 @@ class Document(object):
                 banned_urls.append(url)
         if not self._contents:
             if second_try:
-                Log.error('Couldn\'t retrieve any version of document id '
-                          + u'{} (title: {})'.format(self.id, self.title))
+                Log.error('Couldn\'t retrieve any version of document id ' +
+                          u'{} (title: {})'.format(self.id, self.title))
             else:
                 # we've failed to retrieve any contents, we try again,
                 # this time ignoring format preferences
@@ -408,8 +408,8 @@ class Document(object):
                 ext_matches = Document._extension_from_url_regex.findall(url)
                 if not ext_matches:
                     # shouldn't happen as far as I can tell
-                    Log.error(u'No extension found in url: {} '.format(url)
-                              + u'for document id {}'.format(self.id))
+                    Log.error(u'No extension found in url: {} '.format(url) +
+                              u'for document id {}'.format(self.id))
                     continue
                 extension = '.' + ext_matches[0]
                 Log.debug(
@@ -417,9 +417,9 @@ class Document(object):
                         extension, self.id
                     )
                 )
-                if exclusive and not extension in exclusive:
-                    Log.debug(u'Ignoring extension {} not '.format(extension)
-                              + u'not in exclusive: {}'.format(exclusive))
+                if exclusive and extension not in exclusive:
+                    Log.debug(u'Ignoring extension {} not '.format(extension) +
+                              u'not in exclusive: {}'.format(exclusive))
                     continue
                 if not ignore_preferred and extension in preferred:
                     one_preferred_found = True
