@@ -6,13 +6,13 @@ import traceback
 import os
 
 
-class SettingsFiles:
+class SettingsFiles(object):
     base_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
     SETTINGS_FILE = base_dir + r'settings.yml'
     CONSTANTS_FILE = base_dir + r'constants.yml'
 
 
-class Utils:
+class Utils(object):
 
     # if a try fails, we'll re-try it that many times at most
     _MAX_NB_TRIES = 10
@@ -55,32 +55,35 @@ class Utils:
             if try_nb >= max_nb_tries:
                 Log.debug('Too many tries, re-throwing')
                 raise
-            Log.debug(u'Attempt # {} calling {} failed, sleeping {}s '
-                      .format(try_nb, function.__name__, current_backoff)
-                      + 'then re-trying...')
+            Log.debug(u'Attempt # {} calling '.format(try_nb) +
+                      u'{} with '.format(function.__name__) +
+                      u'args {} and kwargs {} '.format(args, kwargs) +
+                      u'failed with: {}, sleeping '.format(ex) +
+                      u'{}s then re-trying...'.format(current_backoff))
             time.sleep(current_backoff)
             return Utils._multiple_tries_rec(
                 function, blacklist, try_nb + 1, args, kwargs,
                 max_nb_tries, current_backoff * backoff_factor, backoff_factor)
 
 
-class Log:
+class Log(object):
 
     @staticmethod
     def error(*args, **kwargs):
         ttstr_kwargs = {'new_line': True, 'with_BT': True}
         ttstr_kwargs.update(kwargs)
-        sys.stderr.write(Log._timestamped_string(*args, **ttstr_kwargs))
+        sys.stderr.write(Log._timestamped_string(
+            'ERROR', *args, **ttstr_kwargs))
 
     @staticmethod
-    def _timestamped_string(*args, **kwargs):
+    def _timestamped_string(level, *args, **kwargs):
         timestamp = time.strftime('%Y-%m-%d T %H:%M:%S Z', time.gmtime())
         try:
             message = args[0].encode('ascii', 'replace')
             if kwargs.get('with_BT', False):
                 message += ' (Traceback (most recent call last): ' \
                     + str(traceback.extract_stack()) + ' )'
-            return u'[ {} ] '.format(timestamp) + message \
+            return u'[ {} ] {}: '.format(timestamp, level) + message \
                 + ('\n' if kwargs.get('new_line', False) else '')
         except Exception as ex:
             if not kwargs.get('ignore_errors', False):
@@ -91,12 +94,15 @@ class Log:
 
     @staticmethod
     def init(verbose, debug):
-        @staticmethod
-        def pprint(*args):
-            print Log._timestamped_string(*args)
+        def pprint(level):
+            @staticmethod
+            def result(*args):
+                print Log._timestamped_string(level, *args)
+            return result
 
         @staticmethod
         def void(*args):
             pass
-        Log.debug = pprint if debug else void
-        Log.verbose = pprint if verbose or debug else void
+
+        Log.debug = pprint('DEBUG') if debug else void
+        Log.verbose = pprint('INFO') if verbose or debug else void

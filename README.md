@@ -27,27 +27,27 @@ Still in the Brive directory,
 
 then open `settings.yml` with your favorite text editor. In that file, please fill in the two 'google > domain' entries (your domain name, and the login of one of your administator users).
 
-We will now create your private Google App application : log into your Google Apps domain control panel as an administrator, then:
+_Note that Google frequently changes their UI. I try to keep the following instructions up-to-date, but it's entirely possible that they may be silghtly outdated. Please let me know if that's the case._
+
+We will now create your private Google App application : log into your Google Apps domain control panel as an administrator (https://admin.google.com/), then:
 <ol>
-<li> Create an API project in the Google APIs Console: https://code.google.com/apis/console/b/0/ </li>
-<li> Select the 'Services' tab in your API project, and enable the Drive API </li>
-<li> Select the 'API Access' tab in your API project, and click 'Create an OAuth 2.0 client ID' </li>
-<li> In the 'Branding Information' section, provide a name for your application (whatever you want), and click 'Next'. Providing a product logo is optional. </li>
-<li> In the Client ID Settings section, select 'Service account' for the 'Application type', then click 'Create client ID' </li>
+<li> Create an API project in the Google APIs Console: go to https://code.google.com/apis/console/b/0/ and click 'Create an empry project' - choose any name you want </li>
+<li> It might take some time for your project to be created </li>
+<li> When it is, select the 'APIs & auth > APIs' tab in your API project, and enable the 'Drive API' and the 'Admin SDK' API </li>
+<li> Select the 'APIs & auth > Credentials' tab in your API project, and click on 'Add credentials'. In the drop down menu that appears, select 'Service account' </li>
+<li> On the next screen, select 'P12' instead of 'JSON' </li>
+<li> Download the P12 file, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file </li>
 <li> Report your private key's password (should be 'notascret') to the 'google > app > p12_secret' entry of your `settings.yml` file </li>
-<li> Click 'Download private key', save the file in Brive's directory, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file </li>
-<li> You can now close the 'Public-Private Key Pair Generated' popup </li>
-<li> In the 'Service account' section now displayed, please report the 'Email address' value (should be of the form %some_id%@334156113202@developer.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file </li>
-<li> Still in the 'Service account' section, save for later the 'Client ID' value (should be of the form %same_id_as_in_email_address%334156113202.apps.googleusercontent.com) </li>
-</ol>
+<li> In the 'Service accounts' section now displayed, please report the 'Email address' value (should be of the form %some_id%@developer.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file </li>
+<li> The new UI doesn't display your client ID. To build your client ID, you simply need replace `@developer.gserviceaccount.com` in the email address from the step above by `.apps.googleusercontent.com`. E.g. if your email address is `828797343147-a7dc0iec1b0vgpvbcf9bhjm9gk10wkpo@developer.gserviceaccount.com`, then your client ID is `828797343147-a7dc0iec1b0vgpvbcf9bhjm9gk10wkpo.apps.googleusercontent.com`. Save this value, it will be required a few steps below. </li>
 
 Now we need to grant the necessary access rights to this application on your domain:
 <ol>
-<li> Open your domain's control panel (https://www.google.com/a/cpanel/%your-domain-name%) </li>
-<li> Click 'More controls' at the bottom of the window, then 'Security'. In the new screen that appears, click 'Advanced settings', then 'Manage third parties party OAuth Client access' in the 'Authentication' section </li>
-<li> In the 'Client Name' field, report the 'Client ID' value you saved from step 10 above </li>
+<li> Open your domain's control panel (https://admin.google.com/) </li>
+<li> Click 'Security'. In the new screen that appears, click 'Show more', then 'Advanced settings', then 'Manage API client access' in the 'Authentication' section </li>
+<li> In the 'Client Name' field, report the client ID value you saved from step 9 above </li>
 <li> In the 'One or More API Scopes' field, please copy and paste:<br/>
-<code>https://apps-apis.google.com/a/feeds/user/,https://www.googleapis.com/auth/drive.readonly</code><br/>
+<code>https://www.googleapis.com/auth/admin.directory.user.readonly,https://www.googleapis.com/auth/drive.readonly</code><br/>
 (the first one allows your application to get the list of all users on your domain, the second one to fetch the data from your users' Drive accounts), then click 'Authorize' </li>
 </ol>
 

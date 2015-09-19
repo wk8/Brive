@@ -69,7 +69,7 @@ class StreamingHttp(streaming_httplib2.Http):
         return (headers, content)
 
 
-class Credentials:
+class Credentials(object):
 
     def __init__(self, http):
         self._email, p12_file, self._p12_secret, self._scopes = \
@@ -111,7 +111,7 @@ class Credentials:
                                              **kwargs)
 
 
-class Client:
+class Client(object):
 
     # FIXME: check extended scopes, and see that we fail,
     # otherwise issue a warning
@@ -120,17 +120,17 @@ class Client:
         self._streaming = streaming
         self._reset()
         self._creds = Credentials(self._http)
-        self._domain, admin_login, users_api_endpoint, \
-            self._drv_svc_name, self._drv_svc_version = \
+        self._domain, admin_login, \
+            self._drive_service_name, self._drive_service_version, \
+            self._users_service_name, self._users_service_version = \
             Configuration.get('google_domain_name',
                               'google_domain_admin_login',
-                              'google_api_users_endpoint',
                               'google_api_drive_name',
                               'google_api_drive_version',
+                              'google_api_users_name',
+                              'google_api_users_version',
                               not_null=True)
         self._admin = User(admin_login, self, False)
-        self._users_api_endpoint = \
-            users_api_endpoint.format(domain_name=self._domain)
         Log.debug('Client loaded')
 
     # authorizes the given user
@@ -142,8 +142,8 @@ class Client:
         )
         signed_assertion.authorize(self._http)
 
-    def build_service(self, service_name, api_version):
-        return build(service_name, api_version, self._http)
+    def authorize_admin(self):
+        return self.authorize(self._admin)
 
     @property
     def streaming(self):
@@ -151,11 +151,20 @@ class Client:
 
     @property
     def drive_service(self):
-        return self.build_service(self._drv_svc_name, self._drv_svc_version)
+        return self._build_service(
+            self._drive_service_name,
+            self._drive_service_version
+        )
+
+    @property
+    def users_service(self):
+        return self._build_service(
+            self._users_service_name,
+            self._users_service_version
+        )
 
     def users(self, logins=None, login_regex_pattern=None):
         try:
-            self.authorize(self._admin)
             if not logins:
                 logins = self._get_all_user_logins()
             if login_regex_pattern:
@@ -167,40 +176,17 @@ class Client:
             return result
         except AccessTokenRefreshError as oauth_error:
             explanation = \
-                u'App not authorized on {}'.format(self._domain) \
-                + '(or your admin user doesn\'t exist)'
+                u'App not authorized on {} '.format(self._domain) \
+                + u'(or your admin user {} doesn\'t exist)'.format(self._admin)
             oauth_error.brive_explanation = explanation
             raise
 
-    # returns a list of users, on the current page
-    def _get_single_user_page(self, start_username=None):
-        url = self._users_api_endpoint
-        url += ('?startUsername=' + start_username) if start_username else ''
-        try:
-            headers, xml = self.request(
-                url, brive_expected_error_status=403
-            )
-            data = feedparser.parse(xml)
-            return [user['title'] for user in data['entries']]
-        except ExpectedFailedRequestException:
-            raise Exception(u'User {} is not an admin'
-                            .format(self._admin.login))
-
     # gets the complete list of users
     def _get_all_user_logins(self):
-        result = set()
-        current_list = []
-        previous_last_login = None
-        current_last_login = None
-        while current_last_login is None\
-                or current_last_login != previous_last_login:
-            previous_last_login = current_last_login
-            current_list = self._get_single_user_page(current_last_login)
-            current_last_login = current_list[-1]
-            result.update(current_list)
-        result = list(result)
-        result.sort()
-        return result
+        return [login for login in UserGenerator(self, self._domain)]
+
+    def _build_service(self, service_name, api_version):
+        return build(service_name, api_version, self._http)
 
     @Utils.multiple_tries_decorator(ExpectedFailedRequestException)
     def request(self, uri, method='GET', *args, **kwargs):
@@ -225,13 +211,13 @@ class Client:
                     content = content.read()
                 raise FailedRequestException(
                     u'Http request failed (return code: {}, headers: {} '
-                    .format(status, headers)
-                    + u'and content: {})'.format(content.decode('utf8'))
+                    .format(status, headers) +
+                    u'and content: {})'.format(content.decode('utf8'))
                 )
         return result
 
     def _get_email_address(self, user):
-        return '{}@{}'.format(user.login, self._domain)
+        return u'{}@{}'.format(user.login, self._domain)
 
     def _reset(self):
         if self._streaming:
@@ -240,53 +226,59 @@ class Client:
             self._http = StandardHttp()
 
 
-class UserDocumentsGenerator:
+class ServiceListEnumerator(object):
 
-    def __init__(self, user, query=None, cls=Document):
-        self._user = user
-        # the query is used for the requests to the API
-        # (see doc @ https://developers.google.com/drive/search-parameters)
-        self._query = query
-        self._class = cls
+    # sub classes must override these 2
+    _service_object_name = None
+    _items_field = None
 
     def __iter__(self):
         self._current_page_nb = 0
         self._current_page = []
         self._current_page_token = None
         self._next_page_token = None
-        self._drive_service = None
+        self._service = None
         self._already_done_ids = []
         return self
 
+    def _regenerate_service(self):
+        raise NotImplementedError()
+
+    def _list_kwargs(self):
+        return NotImplementedError()
+
+    def _process_item(self, item):
+        raise NotImplementedError()
+
     @Utils.multiple_tries_decorator([ExpiredTokenException, StopIteration])
     def next(self):
-        return self._get_next_doc()
+        return self._get_next()
 
-    def add_processed_id(self, doc_id):
-        self._already_done_ids.append(doc_id)
+    def add_processed_id(self, id):
+        self._already_done_ids.append(id)
 
     def reset_to_current_page(self):
         self._next_page_token = self._current_page_token
         self._current_page = []
         self._current_page_nb -= 1
 
-    def _get_next_doc(self, first_try=True):
+    def _get_next(self, first_try=True):
         try:
-            if not first_try or not self._drive_service:
+            if not first_try or not self._service:
                 # we need to re-auth
-                self._drive_service = self._user.drive_service
-            return self._do_get_next_doc()
+                self._service = self._regenerate_service()
+            return self._do_get_next()
         except ExpiredTokenException:
             if first_try:
                 # let's try again
-                return self._get_next_doc(False)
+                return self._get_next(False)
             raise Exception(
-                'Two oauth errors in a row while processing'
-                + u'{}\'s documents '.format(self._user.login)
-                + 're-authentication failed'
+                'Two oauth errors in a row while processing' +
+                u'{}\'s documents '.format(self._user.login) +
+                're-authentication failed'
             )
 
-    def _do_get_next_doc(self):
+    def _do_get_next(self):
         if not self._current_page:
             self._fetch_next_page()
         try:
@@ -296,24 +288,77 @@ class UserDocumentsGenerator:
             raise StopIteration
 
     def _fetch_next_page(self):
+        cls = self.__class__
+
         if not self._current_page_nb or self._next_page_token:
-            kwargs = {}
+            kwargs = self._list_kwargs()
             if self._next_page_token:
                 kwargs['pageToken'] = self._next_page_token
-            if self._query:
-                kwargs['q'] = self._query
-            response = self._drive_service.files().list(**kwargs).execute()
+
+            service_object = getattr(self._service, cls._service_object_name)()
+            response = service_object.list(**kwargs).execute()
+
+            items = response[getattr(cls, '_items_field')]
+            Log.debug('Retrieving page # {} : found {} items'
+                      .format(self._current_page_nb, len(items)))
+
+            self._current_page = [
+                self._process_item(item) for item in items
+                if item['id'] not in self._already_done_ids
+            ]
+
             self._current_page_token = self._next_page_token
             self._next_page_token = response.get('nextPageToken')
             self._current_page_nb += 1
-            items = response['items']
-            Log.debug('Retrieving page # {} of docs : found {} documents'
-                      .format(self._current_page_nb, len(items)))
-            self._current_page = [
-                self._class(meta, self._user.folders) for meta in items
-                if meta['id'] not in self._already_done_ids
-            ]
         else:
+            # we're done
             self._current_page = []
+
         # no need to keep the processed ids of the current page in memory
         self._already_done_ids = []
+
+
+class UserGenerator(ServiceListEnumerator):
+
+    _service_object_name = 'users'
+    _items_field = 'users'
+
+    def __init__(self, client, domain):
+        self._client = client
+        self._domain = domain
+
+    def _regenerate_service(self):
+        self._client.authorize_admin()
+        return self._client.users_service
+
+    def _list_kwargs(self):
+        return {'domain': self._domain}
+
+    def _process_item(self, item):
+        email = item['primaryEmail']
+        return email.rsplit(u'@{}'.format(self._domain), 1)[0]
+
+
+class UserDocumentsGenerator(ServiceListEnumerator):
+
+    _service_object_name = 'files'
+    _items_field = 'items'
+
+    def __init__(self, user, query=None, cls=Document):
+        self._user = user
+        # the query is used for the requests to the API
+        # (see doc @ https://developers.google.com/drive/search-parameters)
+        self._query = query
+        self._class = cls
+
+    def _regenerate_service(self):
+        return self._user.drive_service
+
+    def _list_kwargs(self):
+        kwargs = {}
+        if self._query:
+            kwargs['q'] = self._query
+        return kwargs
+
+    def _process_item(self, item):
+        return self._class(item, self._user.folders)

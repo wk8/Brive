@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -150,8 +150,8 @@ def main():
             try:
                 if args.keep_on_crash:
                     Log.verbose(
-                        'Unexpected shutdown, trying to finalize backend...'
-                        + ' (you selected --keep-on-crash)'
+                        'Unexpected shutdown, trying to finalize backend...' +
+                        ' (you selected --keep-on-crash)'
                     )
                     backend.finalize()
                 else:

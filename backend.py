@@ -193,8 +193,8 @@ class TarBackend(SimpleBackend):
         )
         if self._format not in ('gz', 'bz2'):
             raise Exception(
-                'The compression format must be either gz or bz2, '
-                + u'{} given'.format(format)
+                'The compression format must be either gz or bz2, ' +
+                u'{} given'.format(format)
             )
         self._tar_files = dict()
         Log.debug('TarBackend loaded')

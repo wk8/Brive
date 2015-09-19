@@ -6,7 +6,7 @@ import yaml
 from backend import *
 
 
-class Configuration:
+class Configuration(object):
 
     instance = None
 
@@ -69,8 +69,8 @@ class Configuration:
                 Configuration.set(name, current.update(value))
             else:
                 raise Exception(
-                    'Unexpected type in Configuration: {}'.format(type(value))
-                    + 'while previous type was: {}'.format(type(current))
+                    u'Unexpected type in Configuration: {} '.format(type(value)) +
+                    u'while previous type was: {}'.format(type(current))
                 )
         else:
             Configuration.set(name, value)
