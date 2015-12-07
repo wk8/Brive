@@ -39,7 +39,7 @@ We will now create your private Google App application : log into your Google Ap
 <li> Download the P12 file, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file </li>
 <li> Report your private key's password (should be 'notascret') to the 'google > app > p12_secret' entry of your `settings.yml` file </li>
 <li> In the 'Service accounts' section now displayed, please report the 'Email address' value (should be of the form %name%-%some_id%@%project%-%some_id%.iam.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file </li>
-<li> To get your client ID go to generated credentials 'API Manager > Credentials > Manage Service Account' and select edit. 'Check box Enable Google Apps Domain-wide Delegation', click save and copy generated client ID. </li>
+<li> To get your client ID go to generated credentials 'API Manager > Credentials > Manage Service Account' and select edit. Enable check box 'Enable Google Apps Domain-wide Delegation', click save and copy generated client ID from the table. </li>
 
 Now we need to grant the necessary access rights to this application on your domain:
 <ol>
