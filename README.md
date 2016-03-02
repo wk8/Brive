@@ -31,15 +31,15 @@ _Note that Google frequently changes their UI. I try to keep the following instr
 
 We will now create your private Google App application : log into your Google Apps domain control panel as an administrator (https://admin.google.com/), then:
 <ol>
-<li> Create an API project in the Google APIs Console: go to https://code.google.com/apis/console/b/0/ and click 'Create an empry project' - choose any name you want </li>
+<li> Create an API project in the Google APIs Console: go to https://console.developers.google.com/ and click 'Create an empry project' - choose any name you want </li>
 <li> It might take some time for your project to be created </li>
 <li> When it is, select the 'APIs & auth > APIs' tab in your API project, and enable the 'Drive API' and the 'Admin SDK' API </li>
 <li> Select the 'APIs & auth > Credentials' tab in your API project, and click on 'Add credentials'. In the drop down menu that appears, select 'Service account' </li>
 <li> On the next screen, select 'P12' instead of 'JSON' </li>
 <li> Download the P12 file, and report the path to it in the 'google > app > p12_file' entry of your `settings.yml` file </li>
 <li> Report your private key's password (should be 'notascret') to the 'google > app > p12_secret' entry of your `settings.yml` file </li>
-<li> In the 'Service accounts' section now displayed, please report the 'Email address' value (should be of the form %some_id%@developer.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file </li>
-<li> The new UI doesn't display your client ID. To build your client ID, you simply need replace `@developer.gserviceaccount.com` in the email address from the step above by `.apps.googleusercontent.com`. E.g. if your email address is `828797343147-a7dc0iec1b0vgpvbcf9bhjm9gk10wkpo@developer.gserviceaccount.com`, then your client ID is `828797343147-a7dc0iec1b0vgpvbcf9bhjm9gk10wkpo.apps.googleusercontent.com`. Save this value, it will be required a few steps below. </li>
+<li> In the 'Service accounts' section now displayed, please report the 'Email address' value (should be of the form %name%-%some_id%@%project%-%some_id%.iam.gserviceaccount.com) to the 'google > app > email' entry of your `settings.yml` file </li>
+<li> To get your client ID go to generated credentials 'API Manager > Credentials > Manage Service Account' and select edit. Enable check box 'Enable Google Apps Domain-wide Delegation', click save and copy generated client ID from the table. </li>
 
 Now we need to grant the necessary access rights to this application on your domain:
 <ol>
